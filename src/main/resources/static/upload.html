@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload Contract</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <header>
+        <h1>Upload Contract</h1>
+        <nav>
+            <a href="index.html">Dashboard</a>
+            <a href="contracts.html">View Contracts</a>
+            <a href="chat.html">Chat with Contract</a>
+        </nav>
+    </header>
+    <main>
+        <form id="uploadForm">
+            <label for="file">Select Contract File (PDF):</label>
+            <input type="file" id="file" name="file" accept=".pdf" required>
+            <button type="submit">Upload</button>
+        </form>
+        <div id="uploadStatus"></div>
+    </main>
+    <script src="js/api.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>

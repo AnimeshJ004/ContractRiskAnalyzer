@@ -1,0 +1,82 @@
+package com.RiskAnalyzerProject.ContractRiskAnalyzer.config;
+
+import com.RiskAnalyzerProject.ContractRiskAnalyzer.service.TokenBlacklistService;
+import com.RiskAnalyzerProject.ContractRiskAnalyzer.service.UserDetailsServiceImpl;
+import com.RiskAnalyzerProject.ContractRiskAnalyzer.util.JwtUtil;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
+import org.springframework.stereotype.Component;
+import org.springframework.web.filter.OncePerRequestFilter;
+
+import java.io.IOException;
+
+@Component
+public class JwtAuthenticationFilter extends OncePerRequestFilter {
+
+    @Autowired
+    private JwtUtil jwtUtil;
+
+    @Autowired
+    private UserDetailsServiceImpl userDetailsService;
+
+    @Autowired
+    private TokenBlacklistService  tokenBlacklistService;
+
+    @Override
+    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
+            throws ServletException, IOException {
+
+        final String authHeader = request.getHeader("Authorization");
+        String username = null;
+        String jwt = null;
+
+        // 1. Check if the header contains a Bearer Token
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            jwt = authHeader.substring(7); // Remove "Bearer " prefix
+            if (tokenBlacklistService.isBlacklisted(jwt)) {
+                // Token is dead. Reject request immediately.
+                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                response.getWriter().write("Token is invalid (Logged out)");
+                return;
+            }
+            try {
+                // Wrap this in try-catch to prevent crashes on expired tokens
+                username = jwtUtil.extractUsername(jwt);
+            } catch (io.jsonwebtoken.ExpiredJwtException e) {
+                System.out.println("JWT Token has expired: " + e.getMessage());
+                // Do nothing. The user remains unauthenticated.
+                // If the endpoint requires login, Spring Security will return 401 later.
+            } catch (Exception e) {
+                System.out.println("Error parsing JWT: " + e.getMessage());
+            }
+        }
+
+        // 2. Validate Token and Load User (Only if we successfully extracted a username)
+        if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+            UserDetails userDetails = this.userDetailsService.loadUserByUsername(username);
+
+            // Double check validity (including expiration again, just to be safe)
+            try {
+                if (jwtUtil.validateToken(jwt, userDetails.getUsername())) {
+                    UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
+                            userDetails, null, userDetails.getAuthorities());
+
+                    authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+
+                    // 3. Authenticate the user in Spring Security Context
+                    SecurityContextHolder.getContext().setAuthentication(authToken);
+                }
+            } catch (Exception e) {
+                System.out.println("Token validation failed: " + e.getMessage());
+            }
+        }
+        filterChain.doFilter(request, response);
+    }
+}

@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Contract Risk Analyzer</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <header>
+        <h1>Contract Risk Analyzer</h1>
+        <nav>
+            <a href="contracts.html">View Contracts</a>
+            <a href="upload.html">Upload Contract</a>
+            <a href="chat.html">Chat with AI</a>
+            <button id="logoutBtn">Logout</button>
+        </nav>
+    </header>
+    <main>
+        <div class="dashboard-container">
+            <h2>Welcome to Contract Risk Analyzer</h2>
+            <p>Manage and analyze your contracts efficiently.</p>
+            <div class="dashboard-cards">
+                <div class="card">
+                    <h3>View Contracts</h3>
+                    <p>Browse and review your uploaded contracts.</p>
+                    <a href="contracts.html" class="btn">Go to Contracts</a>
+                </div>
+                <div class="card">
+                    <h3>Upload Contract</h3>
+                    <p>Upload new PDF contracts for analysis.</p>
+                    <a href="upload.html" class="btn">Upload Now</a>
+                </div>
+                <div class="card">
+                    <h3>Chat with AI</h3>
+                    <p>Ask questions about your contracts using AI.</p>
+                    <a href="chat.html" class="btn">Start Chat</a>
+                </div>
+            </div>
+        </div>
+    </main>
+    <script>
+        document.getElementById('logoutBtn').addEventListener('click', () => {
+            localStorage.removeItem('jwtToken');
+            window.location.href = 'login.html';
+        });
+    </script>
+</body>
+</html>

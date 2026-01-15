@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Contract Risk Analyzer</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <style>
+        .auth-container { max-width: 400px; margin: 50px auto; padding: 2rem; background: white; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+        .form-group { margin-bottom: 1rem; }
+        label { display: block; margin-bottom: 0.5rem; }
+        input { width: 100%; padding: 0.5rem; box-sizing: border-box; }
+        .toggle-link { text-align: center; margin-top: 1rem; cursor: pointer; color: #007bff; }
+    </style>
+</head>
+<body>
+<header>
+    <h1>Contract Risk Analyzer</h1>
+</header>
+<main>
+    <div class="auth-container">
+        <h2 id="formTitle">Login</h2>
+        <form id="authForm">
+            <div class="form-group">
+                <label>Username</label>
+                <input type="text" id="username" required>
+            </div>
+            <div class="form-group">
+                <label>Password</label>
+                <input type="password" id="password" required>
+            </div>
+            <button type="submit" id="submitBtn">Login</button>
+        </form>
+        <p class="toggle-link" id="toggleAuth">Need an account? Register</p>
+        <div id="message" style="margin-top: 1rem; color: red;"></div>
+    </div>
+</main>
+
+<script src="js/api.js"></script>
+<script>
+    let isLogin = true;
+
+    const form = document.getElementById('authForm');
+    const toggleLink = document.getElementById('toggleAuth');
+    const title = document.getElementById('formTitle');
+    const submitBtn = document.getElementById('submitBtn');
+    const messageDiv = document.getElementById('message');
+
+    toggleLink.addEventListener('click', () => {
+        isLogin = !isLogin;
+        title.textContent = isLogin ? 'Login' : 'Register';
+        submitBtn.textContent = isLogin ? 'Login' : 'Register';
+        toggleLink.textContent = isLogin ? 'Need an account? Register' : 'Have an account? Login';
+        messageDiv.textContent = '';
+    });
+
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const username = document.getElementById('username').value;
+        const password = document.getElementById('password').value;
+
+        try {
+            if (isLogin) {
+                const data = await login({ username, password });
+                localStorage.setItem('jwtToken', data.token);
+                window.location.href = 'index.html'; // Redirect to dashboard
+            } else {
+                await register({ username, password });
+                alert('Registration successful! Please login.');
+                toggleLink.click();
+            }
+        } catch (error) {
+            messageDiv.textContent = error.message;
+        }
+    });
+</script>
+</body>
+</html>

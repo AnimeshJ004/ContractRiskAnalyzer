@@ -1,0 +1,86 @@
+package com.RiskAnalyzerProject.ContractRiskAnalyzer.service;
+
+import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.stereotype.Service;
+
+@Service
+public class AiAnalysis {
+
+
+    private final ChatClient chatClient;
+
+    @Autowired
+    public AiAnalysis(ChatClient.Builder builder) {
+        this.chatClient = builder
+                .build();
+    }
+
+    @Cacheable(value = "contractAnalysis", key = "#contractText.hashCode()")
+    public String AnalysisContract(String contractText) {
+        String safeText = contractText.length() > 10000
+                ? contractText.substring(0, 10000) : contractText;
+        String prompt = """
+                ROLE:
+                     You are a Senior Legal Risk Assessor with 20 years of experience in contract law.\s
+                     Your job is to protect the client by identifying dangerous clauses, loopholes, and missing protections.
+                
+                TASK:
+                     Analyze the provided contract text strictly for RISK. Do not summarize the good parts; focus on the bad parts.
+                
+                     ANALYSIS GUIDELINES:
+                            1. Look for 'Indemnification' clauses that are one-sided.
+                            2. Check for 'Termination' clauses (is it easy to exit?).
+                            3. Analyze 'Liability Caps' (is the limit too low?).
+                            4. Identify 'Jurisdiction' (is it in a favorable location?).
+                            5. Flag any 'Auto-renewal' traps.
+                
+                OUTPUT FORMAT:
+                    Return the result in valid, strict JSON format. Do not use Markdown (```json). Do not add conversational text.
+                
+                        JSON STRUCTURE:
+                        {
+                          "summary": "A concise 3-sentence executive summary of the contract type and purpose.",
+                          "risk_score": "Integer between 0 (Safe) and 100 (Extremely Dangerous)",
+                          "risk_level": "Low / Medium / High",
+                          "key_risks": [
+                            {
+                              "clause": "Name of the risky clause (e.g., 'Indemnity')",
+                              "risk_explanation": "Why this is dangerous (e.g., 'Requires you to pay for all 3rd party claims without limit.')",
+                              "severity": "High/Medium/Low"
+                            }
+                          ],
+                          "missing_clauses": ["List of standard protections missing (e.g., 'Confidentiality Clause', 'Force Majeure')"],
+                          "recommendations": ["Actionable advice 1", "Actionable advice 2"]
+                        }
+                CONTRACT TEXT:
+                """ + safeText;
+
+        // Call the AI model
+        return chatClient.prompt()
+                .user(prompt)
+                .call()
+                .content();
+
+    }
+    @Cacheable(value = "aiResponses", key = "{#question, #contractId}")
+    public String chatWithAI(String question , String contractId) {
+        String prompt = question;
+        if (contractId != null && !contractId.isEmpty()) {
+            prompt = """
+                    You are a legal assistant. Use the following contract text to answer the user's question.
+                     If the answer is not in the text, say you don't know.
+                    
+                     --- CONTRACT TEXT START ---
+                     %s
+                     --- CONTRACT TEXT END ---
+                    
+                     User Question: %s
+                    """.formatted(contractId, question);
+        }
+        return chatClient.prompt(prompt)
+                .call()
+                .content();
+    }
+}
