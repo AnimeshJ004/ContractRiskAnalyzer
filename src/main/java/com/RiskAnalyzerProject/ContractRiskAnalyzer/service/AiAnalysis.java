@@ -1,20 +1,28 @@
 package com.RiskAnalyzerProject.ContractRiskAnalyzer.service;
 
 import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
+import org.springframework.ai.chat.memory.ChatMemory;
+import org.springframework.ai.chat.messages.AssistantMessage;
+import org.springframework.ai.chat.messages.Message;
+import org.springframework.ai.chat.messages.UserMessage;
+import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+
 @Service
 public class AiAnalysis {
 
-
     private final ChatClient chatClient;
+    private final ChatMemory chatMemory;
 
     @Autowired
-    public AiAnalysis(ChatClient.Builder builder) {
-        this.chatClient = builder
-                .build();
+    public AiAnalysis(ChatModel chatModel, ChatMemory chatMemory) {
+        this.chatMemory = chatMemory;
+        this.chatClient = ChatClient.builder(chatModel).build();
     }
 
     @Cacheable(value = "contractAnalysis", key = "#contractText.hashCode()")
@@ -64,10 +72,9 @@ public class AiAnalysis {
                 .content();
 
     }
-    @Cacheable(value = "aiResponses", key = "{#question, #contractId}")
-    public String chatWithAI(String question , String contractId) {
+    public String chatWithAI(String question , String contractText,String conversationId) {
         String prompt = question;
-        if (contractId != null && !contractId.isEmpty()) {
+        if (contractText != null && !contractText.isEmpty()) {
             prompt = """
                     You are a legal assistant. Use the following contract text to answer the user's question.
                      If the answer is not in the text, say you don't know.
@@ -77,10 +84,21 @@ public class AiAnalysis {
                      --- CONTRACT TEXT END ---
                     
                      User Question: %s
-                    """.formatted(contractId, question);
+                    """.formatted(contractText, question);
+        }else {
+            // General Chat Mode
+            prompt = "You are a General AI Legal Assistant. You can help with general legal concepts, definitions, and drafting advice.";
         }
-        return chatClient.prompt(prompt)
+        List<Message> history = chatMemory.get(conversationId);
+        String response =  chatClient.prompt()
+                .system(prompt)
+                .messages(history)
+                .user(question)
                 .call()
                 .content();
+        chatMemory.add(conversationId, new UserMessage(question));
+        chatMemory.add(conversationId, new AssistantMessage(response));
+
+        return response;
     }
 }

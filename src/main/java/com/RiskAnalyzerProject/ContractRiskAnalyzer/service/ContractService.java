@@ -46,15 +46,14 @@ public class ContractService {
             throw new RuntimeException("Failed to process file", e);
         }
     }
-    public String chatWithAi(String question , String contractId) {
+    public String chatWithAi(String question , String contractId , String conversationId){
         String contractText = null;
-        if (contractId != null && !contractId.isEmpty()) {
+        if (contractId != null && !contractId.isEmpty() && !contractId.equalsIgnoreCase("general")) {
             Contract contract = contractRepository.findById(contractId)
                     .orElseThrow(() -> new RuntimeException("Contract not found"));
-
             contractText = contract.getExtractedText();
         }
-            return aiAnalysis.chatWithAI(question, contractText);
+            return aiAnalysis.chatWithAI(question, contractText, conversationId);
     }
     public Optional<Contract> getContractById(String id, String requestingUser) {
         Optional<Contract> contract = contractRepository.findById(id);
@@ -70,5 +69,16 @@ public class ContractService {
     public List<Contract> getAllContracts(String username)
     {
         return contractRepository.findByOwnerUsername(username);
+    }
+
+    // DELETE METHOD
+    public void deleteContract(String id, String username) {
+        Contract contract = contractRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Contract not found"));
+
+        if (!contract.getOwnerUsername().equals(username)) {
+            throw new RuntimeException("Unauthorized to delete this contract");
+        }
+        contractRepository.deleteById(id);
     }
 }

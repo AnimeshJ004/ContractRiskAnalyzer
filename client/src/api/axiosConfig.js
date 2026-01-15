@@ -19,4 +19,8 @@ api.interceptors.request.use(
     (error) => Promise.reject(error)
 );
 
+export const deleteContract = async (id) => {
+    return await api.delete(`/contracts/${id}`);
+};
+
 export default api;

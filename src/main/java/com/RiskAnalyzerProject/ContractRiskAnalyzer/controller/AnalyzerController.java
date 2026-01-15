@@ -13,6 +13,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.security.Principal;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/contracts")
@@ -41,14 +42,31 @@ public class AnalyzerController {
     public ResponseEntity<Map<String, String>> chatWithAI(@RequestBody ChatRequest request) {
         try {
             // Call the single unified method
+            String conversationId = request.getConversationId();
+            if (conversationId == null || conversationId.isEmpty()) {
+                conversationId = UUID.randomUUID().toString();
+            }
             String response = contractService.chatWithAi(
                     request.getQuestion(),
-                    request.getContractId()
+                    request.getContractId(),
+                    conversationId
             );
-            return ResponseEntity.ok(Map.of("response", response));
+            return ResponseEntity.ok(Map.of(
+                    "response", response,
+                    "conversationId", conversationId
+            ));
 
         } catch (Exception e) {
             return ResponseEntity.status(500).body(Map.of("error", e.getMessage()));
+        }
+    }
+    @DeleteMapping("/{id}")
+    public ResponseEntity<?> deleteContract(@PathVariable String id, Principal principal) {
+        try {
+            contractService.deleteContract(id, principal.getName());
+            return ResponseEntity.ok(Map.of("message", "Contract deleted successfully"));
+        } catch (Exception e) {
+            return ResponseEntity.status(403).body(Map.of("error", e.getMessage()));
         }
     }
 
