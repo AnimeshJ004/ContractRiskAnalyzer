@@ -10,7 +10,7 @@ public class RegisterRequest {
     private String username;
     @NotBlank(message = "Email is required")
     @Pattern(regexp = "^[A-Za-z0-9._%+-]+@gmail\\.com$", message = "Email must be a valid!")
-    private  String Email;
+    private  String email;
     @NotBlank(message = "Password is required")
     private String password;
     private String role; // Optional, defaults to USER if null

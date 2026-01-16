@@ -40,7 +40,6 @@ public class AnalyzerController {
 }
     @PostMapping("/chat")
     public ResponseEntity<Map<String, String>> chatWithAI(@RequestBody ChatRequest request) {
-        try {
             // Call the single unified method
             String conversationId = request.getConversationId();
             if (conversationId == null || conversationId.isEmpty()) {
@@ -55,19 +54,10 @@ public class AnalyzerController {
                     "response", response,
                     "conversationId", conversationId
             ));
-
-        } catch (Exception e) {
-            return ResponseEntity.status(500).body(Map.of("error", e.getMessage()));
-        }
     }
     @DeleteMapping("/{id}")
     public ResponseEntity<?> deleteContract(@PathVariable String id, Principal principal) {
-        try {
             contractService.deleteContract(id, principal.getName());
             return ResponseEntity.ok(Map.of("message", "Contract deleted successfully"));
-        } catch (Exception e) {
-            return ResponseEntity.status(403).body(Map.of("error", e.getMessage()));
         }
-    }
-
 }

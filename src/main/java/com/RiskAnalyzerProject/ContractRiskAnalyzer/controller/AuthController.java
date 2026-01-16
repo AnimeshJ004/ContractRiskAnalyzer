@@ -10,6 +10,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import com.RiskAnalyzerProject.ContractRiskAnalyzer.dto.LoginRequest;
 import com.RiskAnalyzerProject.ContractRiskAnalyzer.dto.RegisterRequest;
+import java.security.Principal;
+import com.RiskAnalyzerProject.ContractRiskAnalyzer.dto.ResetPasswordRequest;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -25,7 +27,6 @@ public class AuthController {
     @Valid
     @PostMapping("/register")
     public ResponseEntity<?> registerUser(@RequestBody RegisterRequest request) {
-        try {
             User user = new User();
             user.setUsername(request.getUsername());
             user.setEmail(request.getEmail());
@@ -33,14 +34,10 @@ public class AuthController {
             user.setRole(request.getRole()); // Service handles default "USER" if null
             String result = authService.registerUser(user);
             return ResponseEntity.ok(result);
-        } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
     }
     @Valid
     @PostMapping("/login")
     public ResponseEntity<?> loginUser(@RequestBody LoginRequest loginRequest) {
-        try {
             User user = new User();
             user.setUsername(loginRequest.getUsername());
             user.setPassword(loginRequest.getPassword());
@@ -49,29 +46,50 @@ public class AuthController {
             response.put("message", message);
             response.put("message", "OTP_Sent Successfully");
             return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            e.printStackTrace();
-            return ResponseEntity.status(401).body("Invalid Username or Password");
-        }
     }
     @PostMapping("/login/verify")
     public ResponseEntity<?> verifyLogin(@RequestParam String username, @RequestParam String otp) {
-        try {
             String jwt = authService.verifyLoginOtp(username, otp);
-
             Map<String, String> response = new HashMap<>();
             response.put("token", jwt);
             response.put("message", "Login Successful");
-
             return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            return ResponseEntity.status(401).body(e.getMessage());
-        }
-    }
+         }
     @PostMapping("/logout")
     public ResponseEntity<String> logoutUser(HttpServletRequest request, HttpServletResponse response) {
         authService.logOutUser(request, response);
         return ResponseEntity.ok("Logout Successful");
     }
 
+    @GetMapping("/profile")
+    public ResponseEntity<?> getUserProfile(Principal principal) {
+        User user = authService.getUserProfile(principal.getName());
+        // Return only safe fields (avoid sending password/otp)
+        Map<String, String> response = new HashMap<>();
+        response.put("username", user.getUsername());
+        response.put("email", user.getEmail());
+        response.put("role", user.getRole());
+        return ResponseEntity.ok(response);
+    }
+
+    @DeleteMapping("/delete")
+    public ResponseEntity<?> deleteAccount(Principal principal) {
+        authService.deleteAccount(principal.getName());
+        return ResponseEntity.ok(Map.of("message", "Account deleted successfully"));
+    }
+    @PostMapping("/forgot-password")
+    public ResponseEntity<?> forgotPassword(@RequestParam String email) {
+        authService.initiatePasswordReset(email);
+        return ResponseEntity.ok(Map.of("message", "Reset Password Successfully"));
+    }
+    @PostMapping("/reset-password")
+    public ResponseEntity<?> resetPassword(@RequestBody ResetPasswordRequest request) {
+        authService.resetPassword(request.getEmail(), request.getOtp(), request.getNewPassword());
+        return ResponseEntity.ok(Map.of("message", "Password reset successfully. You can now login."));
+    }
+    @PostMapping("/verify-otp")
+    public ResponseEntity<?> verifyOtp(@RequestParam String email, @RequestParam String otp) {
+        authService.verifyOtp(email, otp);
+        return ResponseEntity.ok(Map.of("message", "OTP Verified Successfully"));
+    }
 }

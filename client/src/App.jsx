@@ -7,7 +7,9 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import Chat from './pages/Chat';
-import ContractDetails from './pages/ContractDetails'
+import ContractDetails from './pages/ContractDetails';
+import Settings from './pages/Settings';
+import ForgotPassword from './pages/ForgotPassword';
 
 const PrivateRoute = ({ children }) => {
     const token = localStorage.getItem('jwtToken');
@@ -22,6 +24,7 @@ function App() {
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route
             path="/dashboard"
             element={
@@ -43,6 +46,14 @@ function App() {
             element={
                 <PrivateRoute>
                     <ContractDetails />
+                </PrivateRoute>
+            }
+        />
+        <Route
+            path="/settings"
+            element={
+                <PrivateRoute>
+                    <Settings />
                 </PrivateRoute>
             }
         />

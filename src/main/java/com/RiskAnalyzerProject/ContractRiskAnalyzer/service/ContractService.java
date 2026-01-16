@@ -1,5 +1,6 @@
 package com.RiskAnalyzerProject.ContractRiskAnalyzer.service;
 
+import com.RiskAnalyzerProject.ContractRiskAnalyzer.exception.ResourceNotFound;
 import com.RiskAnalyzerProject.ContractRiskAnalyzer.model.Contract;
 import com.RiskAnalyzerProject.ContractRiskAnalyzer.repository.ContractRepository;
 
@@ -7,6 +8,7 @@ import ch.qos.logback.classic.Logger;
 
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -74,10 +76,10 @@ public class ContractService {
     // DELETE METHOD
     public void deleteContract(String id, String username) {
         Contract contract = contractRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Contract not found"));
+                .orElseThrow(() -> new ResourceNotFound("Contract not found with id: " + id));
 
         if (!contract.getOwnerUsername().equals(username)) {
-            throw new RuntimeException("Unauthorized to delete this contract");
+            throw new AccessDeniedException("You are not authorized to delete this contract");
         }
         contractRepository.deleteById(id);
     }

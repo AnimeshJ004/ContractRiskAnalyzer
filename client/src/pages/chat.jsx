@@ -60,32 +60,32 @@ const Chat = () => {
 
     return (
         <div className="d-flex flex-column vh-100 fade-in">
-            <div className="bg-primary text-white p-3 d-flex justify-content-between align-items-center shadow-sm">
-                <Button variant="outline-light" size="sm" onClick={() => navigate('/dashboard')}>
-                    <FaArrowLeft className="me-1" /> Dashboard
-                </Button>
-                <div className="text-center">
-                    <FaRobot className="me-2" />
-                    <span className="fw-bold">{isGeneral ? 'General AI Assistant' : 'Contract Legal Assistant'}</span>
-                    {isGeneral && <Badge bg="warning" text="dark" className="ms-2">General Mode</Badge>}
-                </div>
-                <div style={{ width: '100px' }}></div>
+          <div className="bg-primary text-white p-3 d-flex justify-content-between align-items-center shadow-sm">
+            <Button variant="outline-light" size="sm" onClick={() => navigate('/dashboard')}>
+                <FaArrowLeft className="me-1" /> Dashboard
+            </Button>
+            <div className="text-center">
+                <FaRobot className="me-2" />
+                <span className="fw-bold">{isGeneral ? 'General AI Assistant' : 'Contract Legal Assistant'}</span>
+                {isGeneral && <Badge bg="warning" text="dark" className="ms-2">General Mode</Badge>}
             </div>
+          <div style={{ width: '100px' }}></div>
+        </div>
 
             <Container className="flex-grow-1 overflow-auto p-4 d-flex flex-column" style={{ background: '#f8fafc' }}>
-                {messages.map((msg, index) => (
-                    <div key={index} className={`d-flex mb-4 ${msg.sender === 'user' ? 'justify-content-end' : 'justify-content-start'}`}>
-                        <div className="d-flex align-items-start" style={{ maxWidth: '80%' }}>
-                            {msg.sender === 'ai' && <div className="bg-primary text-white rounded-circle p-2 me-2"><FaRobot /></div>}
-                            <Card className={`border-0 shadow-sm ${msg.sender === 'user' ? 'bg-primary text-white' : 'bg-white'}`}>
-                                <Card.Body className="py-2 px-3">
-                                    <div className="mb-1">{msg.text}</div>
-                                    <div className="small opacity-50 text-end"><FaClock className="me-1"/>{new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
-                                </Card.Body>
-                            </Card>
-                            {msg.sender === 'user' && <div className="bg-secondary text-white rounded-circle p-2 ms-2"><FaUser /></div>}
-                        </div>
-                    </div>
+            {messages.map((msg, index) => (
+              <div key={index} className={`d-flex mb-4 ${msg.sender === 'user' ? 'justify-content-end' : 'justify-content-start'}`}>
+                <div className="d-flex align-items-start" style={{ maxWidth: '80%' }}>
+                    {msg.sender === 'ai' && <div className="bg-primary text-white rounded-circle p-2 me-2"><FaRobot /></div>}
+                 <Card className={`border-0 shadow-sm ${msg.sender === 'user' ? 'bg-primary text-white' : 'bg-white'}`}>
+                   <Card.Body className="py-2 px-3">
+                     <div className="mb-1">{msg.text}</div>
+                     <div className="small opacity-50 text-end"><FaClock className="me-1"/>{new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
+                   </Card.Body>
+                 </Card>
+                        {msg.sender === 'user' && <div className="bg-secondary text-white rounded-circle p-2 ms-2"><FaUser /></div>}
+                </div>
+              </div>
                 ))}
                 {loading && <div className="text-muted ms-5">AI is thinking...</div>}
                 <div ref={bottomRef} />

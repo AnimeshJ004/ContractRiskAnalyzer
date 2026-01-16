@@ -2,8 +2,17 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api/axiosConfig';
 import { toast } from 'react-toastify';
-import { Container, Card, Form, Button, Spinner, Alert } from 'react-bootstrap';
-import { FaUserPlus, FaUser, FaEnvelope, FaLock, FaShieldAlt } from 'react-icons/fa';
+import { Container, Card, Form, Button, Spinner, InputGroup } from 'react-bootstrap';
+import {
+    FaUserPlus,
+    FaUser,
+    FaEnvelope,
+    FaLock,
+    FaShieldAlt,
+    FaArrowLeft,
+    FaEye,
+    FaEyeSlash
+} from 'react-icons/fa';
 
 const Register = () => {
     const [formData, setFormData] = useState({
@@ -12,6 +21,11 @@ const Register = () => {
         password: '',
         confirmPassword: ''
     });
+
+    // States for toggling password visibility
+    const [showPassword, setShowPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
     const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
 
@@ -25,6 +39,7 @@ const Register = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
 
+        // Client-side validation
         if (formData.password !== formData.confirmPassword) {
             toast.error("Passwords don't match!");
             return;
@@ -42,10 +57,12 @@ const Register = () => {
                 email: formData.email,
                 password: formData.password
             });
+
             toast.success("Registration successful! Please login.");
             navigate('/login');
         } catch (err) {
-            toast.error(err.response?.data?.message || "Registration failed!");
+            console.error("Registration error:", err.message);
+            toast.error(`Registration error: ${err.message}`);
         } finally {
             setLoading(false);
         }
@@ -55,6 +72,18 @@ const Register = () => {
         <Container className="d-flex justify-content-center align-items-center fade-in" style={{ minHeight: '100vh' }}>
             <Card style={{ width: '450px', maxWidth: '90%' }} className="shadow-lg border-0">
                 <Card.Body className="p-5">
+
+                    {/* Back Button */}
+                    <div className="text-start mb-4">
+                        <Button
+                            variant="link"
+                            onClick={() => navigate('/')}
+                            className="p-0 text-decoration-none"
+                        >
+                            <FaArrowLeft className="me-2" /> Back to Home
+                        </Button>
+                    </div>
+
                     <div className="text-center mb-4">
                         <FaShieldAlt size={48} className="text-primary mb-3" />
                         <h2 className="fw-bold text-primary">Create Account</h2>
@@ -62,6 +91,7 @@ const Register = () => {
                     </div>
 
                     <Form onSubmit={handleSubmit}>
+                        {/* Username Field */}
                         <Form.Group className="mb-4">
                             <Form.Label className="fw-semibold">
                                 <FaUser className="me-2 text-primary" />
@@ -78,6 +108,7 @@ const Register = () => {
                             />
                         </Form.Group>
 
+                        {/* Email Field */}
                         <Form.Group className="mb-4">
                             <Form.Label className="fw-semibold">
                                 <FaEnvelope className="me-2 text-primary" />
@@ -94,36 +125,56 @@ const Register = () => {
                             />
                         </Form.Group>
 
+                        {/* Password Field with Eye Button */}
                         <Form.Group className="mb-4">
                             <Form.Label className="fw-semibold">
                                 <FaLock className="me-2 text-primary" />
                                 Password
                             </Form.Label>
-                            <Form.Control
-                                type="password"
-                                name="password"
-                                placeholder="Create a password"
-                                value={formData.password}
-                                onChange={handleChange}
-                                required
-                                className="form-control-lg"
-                            />
+                            <InputGroup>
+                                <Form.Control
+                                    type={showPassword ? "text" : "password"}
+                                    name="password"
+                                    placeholder="Create a password"
+                                    value={formData.password}
+                                    onChange={handleChange}
+                                    required
+                                    className="form-control-lg"
+                                />
+                                <Button
+                                    variant="outline-secondary"
+                                    onClick={() => setShowPassword(!showPassword)}
+                                    title={showPassword ? "Hide password" : "Show password"}
+                                >
+                                    {showPassword ? <FaEyeSlash /> : <FaEye />}
+                                </Button>
+                            </InputGroup>
                         </Form.Group>
 
+                        {/* Confirm Password Field with Eye Button */}
                         <Form.Group className="mb-4">
                             <Form.Label className="fw-semibold">
                                 <FaLock className="me-2 text-primary" />
                                 Confirm Password
                             </Form.Label>
-                            <Form.Control
-                                type="password"
-                                name="confirmPassword"
-                                placeholder="Confirm your password"
-                                value={formData.confirmPassword}
-                                onChange={handleChange}
-                                required
-                                className="form-control-lg"
-                            />
+                            <InputGroup>
+                                <Form.Control
+                                    type={showConfirmPassword ? "text" : "password"}
+                                    name="confirmPassword"
+                                    placeholder="Confirm your password"
+                                    value={formData.confirmPassword}
+                                    onChange={handleChange}
+                                    required
+                                    className="form-control-lg"
+                                />
+                                <Button
+                                    variant="outline-secondary"
+                                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                    title={showConfirmPassword ? "Hide password" : "Show password"}
+                                >
+                                    {showConfirmPassword ? <FaEyeSlash /> : <FaEye />}
+                                </Button>
+                            </InputGroup>
                         </Form.Group>
 
                         <Button

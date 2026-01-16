@@ -345,6 +345,8 @@ a:hover {
   -webkit-backdrop-filter: blur(20px) saturate(180%);
   border-bottom: 1px solid var(--glass-border);
   box-shadow: var(--shadow-sm);
+  position: relative;
+  z-index: 1000;
 }
 
 /* Enhanced Modal */

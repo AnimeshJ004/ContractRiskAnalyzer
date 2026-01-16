@@ -2,12 +2,26 @@ import { useEffect, useState } from 'react';
 import api, { deleteContract } from '../api/axiosConfig';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import { Container, Navbar, Button, Row, Col, Card, Form, ProgressBar, Badge, Modal } from 'react-bootstrap';
-import { FaCheckCircle, FaExclamationTriangle, FaFileContract, FaSignOutAlt, FaUpload, FaRobot, FaClock, FaTrash, FaComments } from 'react-icons/fa';
+import { Container, Navbar, Button, Row, Col, Card, Form, ProgressBar, Badge, Modal, Dropdown } from 'react-bootstrap';
+import {
+    FaCheckCircle,
+    FaExclamationTriangle,
+    FaFileContract,
+    FaSignOutAlt,
+    FaUpload,
+    FaRobot,
+    FaClock,
+    FaTrash,
+    FaComments,
+    FaUserCircle,
+    FaCog
+} from 'react-icons/fa';
 
 const Dashboard = () => {
     const [contracts, setContracts] = useState([]);
     const [uploading, setUploading] = useState(false);
+    // New state for user profile in navbar
+    const [user, setUser] = useState({ username: 'User', email: '' });
 
     // --- MODAL STATE ---
     const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -15,13 +29,26 @@ const Dashboard = () => {
 
     const navigate = useNavigate();
 
-    useEffect(() => { fetchContracts(); }, []);
+    useEffect(() => {
+        fetchContracts();
+        fetchUserProfile();
+    }, []);
 
     const fetchContracts = async () => {
         try {
             const response = await api.get('/contracts');
             setContracts(response.data);
         } catch (error) { console.error(error); }
+    };
+
+    // New function to get user info for the dropdown
+    const fetchUserProfile = async () => {
+        try {
+            const response = await api.get('/auth/profile');
+            setUser(response.data);
+        } catch (error) {
+            console.log("Could not fetch navbar profile info");
+        }
     };
 
     // --- 1. OPEN MODAL HANDLER ---
@@ -71,6 +98,7 @@ const Dashboard = () => {
         try { await api.post('/auth/logout'); } catch(e) {}
         localStorage.removeItem('jwtToken');
         navigate('/');
+        toast.success("Logout Successful!")
     };
 
     const getRiskBadge = (riskLevel = 'low') => {
@@ -94,13 +122,48 @@ const Dashboard = () => {
                         <FaFileContract className="me-2" />
                         Contract Risk Analyzer
                     </Navbar.Brand>
-                    <div className="d-flex gap-2">
+
+                    <div className="d-flex gap-3 align-items-center">
                         <Button variant="light" className="d-flex align-items-center fw-bold text-primary" onClick={() => navigate('/chat/general')}>
                             <FaComments className="me-2" />General AI Chat
                         </Button>
-                        <Button variant="outline-light" onClick={handleLogout} className="d-flex align-items-center">
-                            <FaSignOutAlt className="me-1" />Logout
-                        </Button>
+
+                        {/* --- NEW PROFILE DROPDOWN --- */}
+                        <Dropdown align="end">
+                            <Dropdown.Toggle
+                                variant="outline-light"
+                                id="profile-dropdown"
+                                className="d-flex align-items-center border-0"
+                                style={{ backgroundColor: 'rgba(255,255,255,0.2)' }}
+                            >
+                                <FaUserCircle size={20} className="me-2" />
+                                {user.username || 'Account'}
+                            </Dropdown.Toggle>
+
+                            <Dropdown.Menu className="shadow-lg border-0 p-0 mt-2" style={{ minWidth: '260px' }}>
+                                {/* User Info Header */}
+                                <div className="px-4 py-3 bg-light border-bottom rounded-top">
+                                    <div className="fw-bold text-dark mb-1">{user.username}</div>
+                                    <div className="small text-muted text-truncate">{user.email}</div>
+                                </div>
+
+                                {/* Menu Options */}
+                                <div className="p-2">
+                                    <Dropdown.Item onClick={() => navigate('/settings')} className="rounded py-2 d-flex align-items-center">
+                                        <FaCog className="me-3 text-secondary" />
+                                        Profile Settings
+                                    </Dropdown.Item>
+
+                                    <Dropdown.Divider />
+
+                                    <Dropdown.Item onClick={handleLogout} className="rounded py-2 text-danger d-flex align-items-center">
+                                        <FaSignOutAlt className="me-3" />
+                                        Logout
+                                    </Dropdown.Item>
+                                </div>
+                            </Dropdown.Menu>
+                        </Dropdown>
+                        {/* --------------------------- */}
                     </div>
                 </Container>
             </Navbar>
@@ -124,7 +187,6 @@ const Dashboard = () => {
 
                 <Row xs={1} md={2} lg={3} xl={4} className="g-4">
                     {contracts.map((contract) => {
-                        // --- PARSE RISK LEVEL FROM JSON ---
                         let riskLevel = 'low';
                         try {
                             if (contract.analysisJson) {
@@ -154,7 +216,6 @@ const Dashboard = () => {
                                         <Card.Text className="text-muted small mb-3"><FaClock className="me-1" />{new Date(contract.uploadDate).toLocaleDateString()}</Card.Text>
 
                                         <div className="mt-auto d-flex gap-2">
-                                            {/* Report Button */}
                                             <Button
                                                 variant="outline-primary"
                                                 className="flex-grow-1 d-flex align-items-center justify-content-center"
@@ -163,7 +224,6 @@ const Dashboard = () => {
                                                 Report
                                             </Button>
 
-                                            {/* Chat Button */}
                                             <Button
                                                 variant="primary"
                                                 className="flex-grow-1 d-flex align-items-center justify-content-center"
@@ -172,7 +232,6 @@ const Dashboard = () => {
                                                 <FaRobot className="me-2" /> Chat
                                             </Button>
 
-                                            {/* Delete Button */}
                                             <Button variant="outline-danger" onClick={(e) => handleDeleteClick(contract.id, e)} title="Delete Contract">
                                                 <FaTrash />
                                             </Button>
