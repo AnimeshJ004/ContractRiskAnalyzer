@@ -1,7 +1,7 @@
 package com.RiskAnalyzerProject.ContractRiskAnalyzer.service;
 
 import org.springframework.ai.chat.client.ChatClient;
-import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
+import org.springframework.ai.openai.OpenAiChatOptions;
 import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.ai.chat.messages.AssistantMessage;
 import org.springframework.ai.chat.messages.Message;
@@ -75,6 +75,9 @@ public class AiAnalysis {
     public String chatWithAI(String question , String contractText,String conversationId) {
         String prompt = question;
         if (contractText != null && !contractText.isEmpty()) {
+            String safeText = contractText.length() > 15000
+                    ? contractText.substring(0, 15000)
+                    : contractText;
             prompt = """
                     You are a legal assistant. Use the following contract text to answer the user's question.
                      If the answer is not in the text, say you don't know.
@@ -90,10 +93,15 @@ public class AiAnalysis {
             prompt = "You are a General AI Legal Assistant. You can help with general legal concepts, definitions, and drafting advice.";
         }
         List<Message> history = chatMemory.get(conversationId);
+        OpenAiChatOptions options = OpenAiChatOptions.builder()
+                .model("llama-3.3-70b-versatile")
+                .temperature(0.7)
+                .build();
         String response =  chatClient.prompt()
                 .system(prompt)
                 .messages(history)
                 .user(question)
+                .options(options)
                 .call()
                 .content();
         chatMemory.add(conversationId, new UserMessage(question));
