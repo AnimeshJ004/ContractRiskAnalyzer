@@ -27,8 +27,8 @@ public class AiAnalysis {
 
     @Cacheable(value = "contractAnalysis", key = "#contractText.hashCode()")
     public String AnalysisContract(String contractText) {
-        String safeText = contractText.length() > 10000
-                ? contractText.substring(0, 10000) : contractText;
+        String safeText = contractText.length() > 15000
+                ? contractText.substring(0, 15000) : contractText;
         String prompt = """
                 ROLE:
                      You are a Senior Legal Risk Assessor with 20 years of experience in contract law.\s
@@ -64,7 +64,10 @@ public class AiAnalysis {
                         }
                 CONTRACT TEXT:
                 """ + safeText;
-
+       // Force temperature to 0.0 for consistent analysis
+        OpenAiChatOptions options = OpenAiChatOptions.builder()
+                .temperature(0.0) // 0.0 = Deterministic / Consistent
+                .build();
         // Call the AI model
         return chatClient.prompt()
                 .user(prompt)
@@ -95,7 +98,7 @@ public class AiAnalysis {
         List<Message> history = chatMemory.get(conversationId);
         OpenAiChatOptions options = OpenAiChatOptions.builder()
                 .model("llama-3.3-70b-versatile")
-                .temperature(0.7)
+                .temperature(0.0)
                 .build();
         String response =  chatClient.prompt()
                 .system(prompt)
