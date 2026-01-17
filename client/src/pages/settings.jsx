@@ -1,114 +1,175 @@
-import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
 import api from '../api/axiosConfig';
+import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import { Container, Card, Button, Form, Modal, Spinner } from 'react-bootstrap';
-import { FaArrowLeft, FaUserCog, FaEnvelope, FaUser, FaTrashAlt, FaExclamationTriangle } from 'react-icons/fa';
+import { Container, Card, Button, Modal, Form, Alert } from 'react-bootstrap';
+import {
+    FaUser,
+    FaEnvelope,
+    FaShieldAlt,
+    FaArrowLeft,
+    FaTrash,
+    FaExclamationTriangle
+} from 'react-icons/fa';
 
 const Settings = () => {
+    // --- STATE MANAGEMENT ---
     const [user, setUser] = useState({ username: '', email: '', role: '' });
-    const [loading, setLoading] = useState(true);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [password, setPassword] = useState('');
+    const [loading, setLoading] = useState(false);
+
     const navigate = useNavigate();
 
+    // --- 1. FETCH PROFILE ON LOAD ---
     useEffect(() => {
+        const fetchProfile = async () => {
+            try {
+                const response = await api.get('/auth/profile');
+                setUser(response.data);
+            } catch (error) {
+                toast.error("Failed to load profile. Please login again.");
+                navigate('/login');
+            }
+        };
         fetchProfile();
-    }, []);
+    }, [navigate]);
 
-    const fetchProfile = async () => {
+    // --- 2. DELETE ACCOUNT HANDLER ---
+    const handleDeleteAccount = async () => {
+        if (!password) {
+            toast.error("Please enter your password.");
+            return;
+        }
+
+        setLoading(true);
         try {
-            const response = await api.get('/auth/profile');
-            setUser(response.data);
+            // Call the UserController endpoint
+            await api.delete('/users/delete-account', {
+                data: { password: password } // Axios requires 'data' key for DELETE body
+            });
+
+            // Success: Cleanup and Redirect
+            localStorage.removeItem('jwtToken');
+            toast.success("Account deleted successfully. Goodbye!");
+            navigate('/');
         } catch (error) {
-            toast.error("Failed to load profile");
+            const msg = error.response?.data?.message || "Failed to delete account.";
+            toast.error(msg);
         } finally {
             setLoading(false);
+            setShowDeleteModal(false);
         }
     };
-
-    const handleDeleteAccount = async () => {
-        try {
-            await api.delete('/auth/delete');
-            localStorage.removeItem('jwtToken');
-            toast.success("Account deleted successfully.");
-            navigate('/login');
-        } catch (error) {
-            toast.error("Failed to delete account.");
-        }
-    };
-
-    if (loading) return <div className="text-center mt-5"><Spinner animation="border" variant="primary" /></div>;
 
     return (
         <Container className="py-5 fade-in" style={{ maxWidth: '800px' }}>
-            {/* Header */}
-            <div className="d-flex align-items-center mb-4">
-                <Button variant="outline-secondary" onClick={() => navigate('/dashboard')} className="me-3">
-                    <FaArrowLeft /> Back
+
+            {/* HEADER */}
+            <div className="mb-4">
+                <Button variant="link" onClick={() => navigate('/dashboard')} className="p-0 text-decoration-none mb-2">
+                    <FaArrowLeft className="me-2" /> Back to Dashboard
                 </Button>
-                <h2 className="fw-bold mb-0 text-primary"><FaUserCog className="me-2" /> Account Settings</h2>
+                <h2 className="fw-bold"><FaUser className="me-2 text-primary"/> Account Settings</h2>
             </div>
 
-            {/* Profile Card */}
+            {/* PROFILE CARD */}
             <Card className="shadow-sm border-0 mb-5">
-                <Card.Header className="bg-white py-3">
-                    <h5 className="mb-0 fw-bold">Profile Information</h5>
+                <Card.Body className="p-4">
+                    <h5 className="fw-bold mb-4 text-muted border-bottom pb-2">Profile Information</h5>
+
+                    <Form.Group className="mb-3">
+                        <Form.Label className="fw-semibold"><FaUser className="me-2 text-secondary"/> Username</Form.Label>
+                        <Form.Control type="text" value={user.username} disabled className="bg-light" />
+                    </Form.Group>
+
+                    <Form.Group className="mb-3">
+                        <Form.Label className="fw-semibold"><FaEnvelope className="me-2 text-secondary"/> Email</Form.Label>
+                        <Form.Control type="text" value={user.email} disabled className="bg-light" />
+                    </Form.Group>
+
+                    <Form.Group className="mb-1">
+                        <Form.Label className="fw-semibold"><FaShieldAlt className="me-2 text-secondary"/> Account Role</Form.Label>
+                        <Form.Control type="text" value={user.role} disabled className="bg-light" />
+                    </Form.Group>
+                </Card.Body>
+            </Card>
+
+            {/* DANGER ZONE CARD */}
+            <Card className="shadow-sm border-danger">
+                <Card.Header className="bg-danger text-white fw-bold">
+                    <FaExclamationTriangle className="me-2" /> Danger Zone
                 </Card.Header>
                 <Card.Body className="p-4">
-                    <Form>
-                        <Form.Group className="mb-3">
-                            <Form.Label className="text-muted small fw-bold">USERNAME</Form.Label>
-                            <div className="d-flex align-items-center p-2 border rounded bg-light">
-                                <FaUser className="text-primary me-3" />
-                                <span className="fw-semibold">{user.username}</span>
-                            </div>
-                        </Form.Group>
-
-                        <Form.Group className="mb-3">
-                            <Form.Label className="text-muted small fw-bold">EMAIL ADDRESS</Form.Label>
-                            <div className="d-flex align-items-center p-2 border rounded bg-light">
-                                <FaEnvelope className="text-primary me-3" />
-                                <span>{user.email}</span>
-                            </div>
-                        </Form.Group>
-
-                        <Form.Group>
-                            <Form.Label className="text-muted small fw-bold">ROLE</Form.Label>
-                            <div><span className="badge bg-info">{user.role}</span></div>
-                        </Form.Group>
-                    </Form>
-                </Card.Body>
-            </Card>
-
-            {/* Danger Zone */}
-            <Card className="shadow-sm border-0 border-start border-danger border-5">
-                <Card.Body className="p-4 d-flex justify-content-between align-items-center flex-wrap gap-3">
-                    <div>
-                        <h5 className="fw-bold text-danger">Delete Account</h5>
-                        <p className="text-muted mb-0 small">
-                            Permanently delete your account and all associated contracts. This action cannot be undone.
-                        </p>
+                    <div className="d-flex justify-content-between align-items-center flex-wrap gap-3">
+                        <div>
+                            <h5 className="fw-bold text-danger">Delete Account</h5>
+                            <p className="text-muted mb-0 small">
+                                Once you delete your account, there is no going back. Please be certain.
+                            </p>
+                        </div>
+                        <Button variant="outline-danger" onClick={() => setShowDeleteModal(true)}>
+                            Delete Account
+                        </Button>
                     </div>
-                    <Button variant="danger" onClick={() => setShowDeleteModal(true)}>
-                        <FaTrashAlt className="me-2" /> Delete My Account
-                    </Button>
                 </Card.Body>
             </Card>
 
-            {/* Delete Confirmation Modal */}
-            <Modal show={showDeleteModal} onHide={() => setShowDeleteModal(false)} centered>
-                <Modal.Header closeButton className="border-0">
+            {/* DELETE CONFIRMATION MODAL */}
+            <Modal show={showDeleteModal} onHide={() => setShowDeleteModal(false)} centered backdrop="static">
+                <Modal.Header closeButton>
                     <Modal.Title className="text-danger fw-bold">
-                        <FaExclamationTriangle className="me-2" /> Delete Account?
+                        <FaTrash className="me-2" /> Confirm Account Deletion
                     </Modal.Title>
                 </Modal.Header>
                 <Modal.Body>
-                    <p>Are you absolutely sure you want to delete your account?</p>
-                    <p className="fw-bold text-danger">Warning: This will delete all your uploaded contracts and analysis history.</p>
+                    <Alert variant="warning" className="small">
+                        All your uploaded contracts, chats, and personal data will be permanently removed.
+                    </Alert>
+
+                    <Form.Group className="mb-3">
+                        <Form.Label className="fw-bold">Enter Password to Confirm</Form.Label>
+                        <Form.Control
+                            type="password"
+                            placeholder="Your password"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                        />
+                    </Form.Group>
+
+                    {/* SMART FORGOT PASSWORD LINK */}
+                    <div className="text-end">
+                        <Button
+                            variant="link"
+                            className="p-0 text-decoration-none small"
+                            onClick={() => {
+                                setShowDeleteModal(false);
+                                // Pass state so ForgotPassword knows to return here & auto-login
+                                navigate('/forgot-password', {
+                                    state: {
+                                        returnPath: '/settings',
+                                        username: user.username,
+                                        email: user.email
+                                    }
+                                });
+                            }}
+                        >
+                            Forgot Password?
+                        </Button>
+                    </div>
+
                 </Modal.Body>
-                <Modal.Footer className="border-0">
-                    <Button variant="secondary" onClick={() => setShowDeleteModal(false)}>Cancel</Button>
-                    <Button variant="danger" onClick={handleDeleteAccount}>Yes, Delete Everything</Button>
+                <Modal.Footer>
+                    <Button variant="secondary" onClick={() => setShowDeleteModal(false)}>
+                        Cancel
+                    </Button>
+                    <Button
+                        variant="danger"
+                        onClick={handleDeleteAccount}
+                        disabled={loading || !password}
+                    >
+                        {loading ? "Deleting..." : "Permanently Delete Account"}
+                    </Button>
                 </Modal.Footer>
             </Modal>
         </Container>

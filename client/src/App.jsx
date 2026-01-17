@@ -10,6 +10,7 @@ import Chat from './pages/Chat';
 import ContractDetails from './pages/ContractDetails';
 import Settings from './pages/Settings';
 import ForgotPassword from './pages/ForgotPassword';
+import CompleteRegistration from './pages/CompleteRegistration';
 
 const PrivateRoute = ({ children }) => {
     const token = localStorage.getItem('jwtToken');
@@ -33,6 +34,7 @@ function App() {
                 </PrivateRoute>
             }
         />
+        <Route path="/complete-registration" element={<CompleteRegistration />} />
         <Route
             path="/chat/:contractId"
             element={

@@ -11,7 +11,8 @@ import {
     FaShieldAlt,
     FaArrowLeft,
     FaEye,
-    FaEyeSlash
+    FaEyeSlash,
+    FaGoogle
 } from 'react-icons/fa';
 
 const Register = () => {
@@ -34,6 +35,13 @@ const Register = () => {
             ...formData,
             [e.target.name]: e.target.value
         });
+    };
+     // --- GOOGLE HANDLER ---
+    const handleGoogleRegister = () => {
+        document.cookie = "auth_intent=register; path=/; max-age=300";// Expires in 5 mins
+        // We use the SAME endpoint as login. The backend handles the logic
+        // to check if it's a new user or existing one.
+        window.location.href = "http://localhost:8080/oauth2/authorization/google";
     };
 
     const handleSubmit = async (e) => {
@@ -62,7 +70,14 @@ const Register = () => {
             navigate('/login');
         } catch (err) {
             console.error("Registration error:", err.message);
-            toast.error(`Registration error: ${err.message}`);
+            const errorMsg = err.message || "";
+                        if (errorMsg.toLowerCase().includes("already in use") || errorMsg.toLowerCase().includes("exists")) {
+                            toast.warning("User already registered! Redirecting to login...");
+                            // Wait 2 seconds so the user can read the message, then redirect
+                            setTimeout(() => navigate('/login'), 2000);
+                        } else {
+                            toast.error(`Registration error: ${errorMsg}`);
+                        }
         } finally {
             setLoading(false);
         }
@@ -88,6 +103,19 @@ const Register = () => {
                         <FaShieldAlt size={48} className="text-primary mb-3" />
                         <h2 className="fw-bold text-primary">Create Account</h2>
                         <p className="text-muted">Join Contract Risk Analyzer</p>
+                    </div>
+                    <Button
+                        variant="outline-danger"
+                        className="w-100 fw-bold d-flex align-items-center justify-content-center mb-3"
+                        onClick={handleGoogleRegister}
+                    >
+                        <FaGoogle className="me-2" /> Sign up with Google
+                    </Button>
+
+                    <div className="d-flex align-items-center mb-3">
+                        <hr className="flex-grow-1" />
+                        <span className="mx-2 text-muted small">OR REGISTER WITH EMAIL</span>
+                        <hr className="flex-grow-1" />
                     </div>
 
                     <Form onSubmit={handleSubmit}>
@@ -195,6 +223,7 @@ const Register = () => {
                                 </>
                             )}
                         </Button>
+
                     </Form>
 
                     <div className="text-center mt-4">

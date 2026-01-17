@@ -11,7 +11,8 @@ import {
     FaArrowLeft,
     FaEye,
     FaEyeSlash,
-    FaRedo // New Icon
+    FaRedo, // New Icon
+    FaGoogle
 } from 'react-icons/fa';
 
 const Login = () => {
@@ -29,7 +30,21 @@ const Login = () => {
 
     const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
-
+//    Google LoginHandler
+    useEffect(() => {
+        // Check if URL has ?token=...
+        const params = new URLSearchParams(window.location.search);
+        const token = params.get('token');
+        const error = params.get('error');
+        if (token) {
+            localStorage.setItem('jwtToken', token);
+            toast.success("Login Successful via Google!");
+            navigate('/dashboard');
+        }else if (error === 'user_exists') {
+             // This catches the redirect from the Register page
+             toast.error("User already exists! Please login.");
+         }
+    }, []);
     // --- TIMER LOGIC ---
     useEffect(() => {
         let interval;
@@ -66,6 +81,13 @@ const Login = () => {
         } finally {
             setLoading(false);
         }
+    };
+//  Handler Google Button
+   const handleGoogleLogin = () => {
+       // Set cookie to tell backend this is a LOGIN attempt
+        document.cookie = "auth_intent=login; path=/; max-age=300";
+        // Redirect browser directly to backend OAuth endpoint
+        window.location.href = "http://localhost:8080/oauth2/authorization/google";
     };
 
     // --- RESEND OTP HANDLER ---
@@ -191,6 +213,14 @@ const Login = () => {
                                     </>
                                 )}
                             </Button>
+                            <div className="text-center my-3 text-muted">OR</div>
+                                <Button
+                                    variant="outline-danger"
+                                    className="w-100 fw-bold d-flex align-items-center justify-content-center"
+                                    onClick={handleGoogleLogin}
+                                >
+                                    <FaGoogle className="me-2" /> Login with Google
+                                </Button>
                         </Form>
                     ) : (
                         <Form onSubmit={handleVerify}>

@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../api/axiosConfig';
 import { Container, Button, Card, Row, Col, Badge, Spinner, Accordion } from 'react-bootstrap';
-import { FaArrowLeft, FaRobot, FaExclamationTriangle, FaCheckCircle, FaFileAlt, FaListUl, FaShieldAlt } from 'react-icons/fa';
+import { FaArrowLeft, FaRobot, FaExclamationTriangle, FaCheckCircle, FaFileAlt, FaListUl, FaShieldAlt, FaDownload } from 'react-icons/fa';
+import {toast} from 'react-toastify';
 
 const ContractDetails = () => {
     const { id } = useParams();
@@ -44,7 +45,33 @@ const ContractDetails = () => {
         if (l.includes('medium')) return 'warning';
         return 'success';
     };
+const handleDownloadAnalysis = async () => {
+        try {
+            toast.info("Generating PDF Report...");
+            const response = await api.get(`/contracts/${id}/download-report`, {
+                responseType: 'blob' // Important: Expect a binary file
+            });
 
+            // Create a URL for the blob
+            const url = window.URL.createObjectURL(new Blob([response.data]));
+            const link = document.createElement('a');
+            link.href = url;
+
+            // Set filename based on contract
+            link.setAttribute('download', `Analysis_Report_${contract.filename || 'contract'}.pdf`);
+
+            document.body.appendChild(link);
+            link.click();
+
+            // Cleanup
+            link.parentNode.removeChild(link);
+            window.URL.revokeObjectURL(url);
+            toast.success("Report downloaded successfully!");
+        } catch (error) {
+            console.error("Download failed", error);
+            toast.error("Failed to download PDF report.");
+        }
+    };
     return (
         <Container className="py-5 fade-in">
             {/* Header */}
@@ -53,6 +80,9 @@ const ContractDetails = () => {
                     <FaArrowLeft className="me-2" /> Back to Dashboard
                 </Button>
                 <div className="d-flex gap-2">
+                    <Button variant="success" onClick={handleDownloadAnalysis}>
+                        <FaDownload className="me-2" /> Download Report (PDF)
+                    </Button>
                     <Button variant="primary" onClick={() => navigate(`/chat/${id}`)}>
                         <FaRobot className="me-2" /> Chat with Contract
                     </Button>

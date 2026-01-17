@@ -23,6 +23,12 @@ public class AnalyzerController {
     @Autowired
     private ContractService contractService;
 
+    @Autowired
+    private com.RiskAnalyzerProject.ContractRiskAnalyzer.service.PdfReportService pdfReportService;
+
+    @Autowired
+    private com.RiskAnalyzerProject.ContractRiskAnalyzer.service.RateLimitingService rateLimitingService;
+
     @GetMapping
     public List<Contract> getAllContracts( Principal principal) {
         return contractService.getAllContracts(principal.getName());
@@ -33,6 +39,26 @@ public class AnalyzerController {
                     .map(ResponseEntity::ok)
                     .orElse(ResponseEntity.status(403).build());
         }
+    @GetMapping("/{id}/download-report")
+    public ResponseEntity<byte[]> downloadReport(@PathVariable String id, Principal principal) throws IOException {
+        Contract contract = contractService.getContractById(id, principal.getName())
+                .orElseThrow(() -> new RuntimeException("Contract not found or access denied"));
+        // 1. Generate PDF
+        byte[] pdfBytes = pdfReportService.generateContractReport(contract);
+        return ResponseEntity.ok()
+                .header(org.springframework.http.HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=Analysis_Report_" + contract.getFilename() + ".pdf")
+                .contentType(MediaType.APPLICATION_PDF)
+                .body(pdfBytes);
+    }
+    @GetMapping("/rate-limit")
+    public ResponseEntity<Map<String, Object>> getRateLimit(Principal principal) {
+        long remaining = rateLimitingService.getRemainingTokens(principal.getName());
+        return ResponseEntity.ok(Map.of(
+                "remaining", remaining,
+                "isUnlimited", remaining > 100 // Flag to help frontend imply "Admin/Unlimited"
+        ));
+    }
+
     @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<Contract> uploadContract(@RequestParam("file") MultipartFile file, Principal  principal) throws IOException, java.io.IOException {
         Contract savedContract = contractService.processAndSaveContract(file , principal.getName());

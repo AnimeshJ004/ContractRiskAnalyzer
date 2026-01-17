@@ -12,6 +12,8 @@ import com.RiskAnalyzerProject.ContractRiskAnalyzer.dto.LoginRequest;
 import com.RiskAnalyzerProject.ContractRiskAnalyzer.dto.RegisterRequest;
 import java.security.Principal;
 import com.RiskAnalyzerProject.ContractRiskAnalyzer.dto.ResetPasswordRequest;
+import com.RiskAnalyzerProject.ContractRiskAnalyzer.dto.OAuth2CompleteRequest;
+import com.RiskAnalyzerProject.ContractRiskAnalyzer.util.JwtUtil;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -23,6 +25,9 @@ public class AuthController {
 
     @Autowired
     private AuthService authService;
+    @Autowired
+    private com.RiskAnalyzerProject.ContractRiskAnalyzer.util.JwtUtil jwtUtil;
+
 
     @Valid
     @PostMapping("/register")
@@ -91,5 +96,32 @@ public class AuthController {
     public ResponseEntity<?> verifyOtp(@RequestParam String email, @RequestParam String otp) {
         authService.verifyOtp(email, otp);
         return ResponseEntity.ok(Map.of("message", "OTP Verified Successfully"));
+    }
+    @PostMapping("/oauth-complete")
+    public ResponseEntity<?> completeOAuthRegistration(@RequestBody com.RiskAnalyzerProject.ContractRiskAnalyzer.dto.OAuth2CompleteRequest request) {
+        // 1. Verify the temp token matches the email (Security Check)
+        if (!jwtUtil.validateToken(request.getTempToken(), request.getEmail())) {
+            return ResponseEntity.status(401).body(Map.of("error", "Invalid or expired registration session."));
+        }
+
+        // 2. Determine Password (User provided OR Dummy)
+        String finalPassword = (request.getPassword() != null && !request.getPassword().isEmpty())
+                ? request.getPassword()
+                : java.util.UUID.randomUUID().toString(); // Dummy Password
+
+        // 3. Create User
+        User user = new User();
+        user.setUsername(request.getUsername());
+        user.setEmail(request.getEmail());
+        user.setPassword(finalPassword);
+        user.setRole("USER");
+
+        // 4. Save User (using your service logic ideally, but direct here for brevity)
+        authService.registerUser(user);
+
+        // 5. Generate Real Login Token
+        String token = jwtUtil.generateToken(user.getUsername());
+
+        return ResponseEntity.ok(Map.of("token", token));
     }
 }

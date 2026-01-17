@@ -1,0 +1,49 @@
+package com.RiskAnalyzerProject.ContractRiskAnalyzer.service;
+
+import com.RiskAnalyzerProject.ContractRiskAnalyzer.model.User;
+import com.RiskAnalyzerProject.ContractRiskAnalyzer.repository.UserRepository;
+import io.github.bucket4j.Bandwidth;
+import io.github.bucket4j.Bucket;
+import io.github.bucket4j.Refill;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.time.Duration;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+
+@Service
+public class RateLimitingService {
+
+    @Autowired
+    private UserRepository userRepository;
+
+    // Cache buckets in memory (Map<Username, Bucket>)
+    private final Map<String, Bucket> cache = new ConcurrentHashMap<>();
+
+    public boolean tryConsume(String username) {
+        Bucket bucket = cache.computeIfAbsent(username, this::createNewBucket);
+        return bucket.tryConsume(1);
+    }
+    public long getRemainingTokens(String username) {
+        Bucket bucket = cache.computeIfAbsent(username, this::createNewBucket);
+        return bucket.getAvailableTokens();
+    }
+
+    private Bucket createNewBucket(String username) {
+        User user = userRepository.findByUsername(username).orElse(null);
+
+        if (user != null && "ADMIN".equalsIgnoreCase(user.getRole())) {
+            // ADMIN: Virtually unlimited (e.g., 10,000 requests per minute)
+            return Bucket.builder()
+                    .addLimit(Bandwidth.classic(10000, Refill.greedy(10000, Duration.ofMinutes(1))))
+                    .build();
+        } else {
+            // USER: Limited to 2 uploads per 1 hour
+            // Refill.intervally means "refill 2 tokens every 60 minutes"
+            return Bucket.builder()
+                    .addLimit(Bandwidth.classic(2, Refill.intervally(2, Duration.ofHours(1))))
+                    .build();
+        }
+    }
+}
