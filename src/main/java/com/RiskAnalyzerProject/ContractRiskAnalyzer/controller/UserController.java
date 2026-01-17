@@ -9,7 +9,7 @@ import java.security.Principal;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/users") // Base path for user management
+@RequestMapping("/api/users") // Base path for user management
 public class UserController {
 
     @Autowired
@@ -30,7 +30,7 @@ public class UserController {
         } catch (RuntimeException e) {
             // Return 401 Unauthorized if password is wrong
             // We use 401 or 400 depending on the specific error, but 401 is good for auth failures
-            return ResponseEntity.status(401).body(Map.of("message", e.getMessage()));
+            return ResponseEntity.status(400).body(Map.of("message", e.getMessage()));
         }
     }
 }

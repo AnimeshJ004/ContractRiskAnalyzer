@@ -2,14 +2,18 @@ import { useState, useEffect } from 'react';
 import api from '../api/axiosConfig';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import { Container, Card, Button, Modal, Form, Alert } from 'react-bootstrap';
+// Added InputGroup to imports
+import { Container, Card, Button, Modal, Form, Alert, InputGroup } from 'react-bootstrap';
+// Added FaEye, FaEyeSlash to imports
 import {
     FaUser,
     FaEnvelope,
     FaShieldAlt,
     FaArrowLeft,
     FaTrash,
-    FaExclamationTriangle
+    FaExclamationTriangle,
+    FaEye,
+    FaEyeSlash
 } from 'react-icons/fa';
 
 const Settings = () => {
@@ -18,6 +22,9 @@ const Settings = () => {
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
+
+    // New state for toggling password visibility
+    const [showPassword, setShowPassword] = useState(false);
 
     const navigate = useNavigate();
 
@@ -28,6 +35,7 @@ const Settings = () => {
                 const response = await api.get('/auth/profile');
                 setUser(response.data);
             } catch (error) {
+
                 toast.error("Failed to load profile. Please login again.");
                 navigate('/login');
             }
@@ -44,16 +52,15 @@ const Settings = () => {
 
         setLoading(true);
         try {
-            // Call the UserController endpoint
             await api.post('/users/delete-account', {
-                            password: password
-                        });
+                password: password
+            });
 
-            // Success: Cleanup and Redirect
             localStorage.removeItem('jwtToken');
             toast.success("Account deleted successfully. Goodbye!");
             navigate('/');
         } catch (error) {
+            // Keep this error, as it relates to the specific action (wrong password)
             const msg = error.response?.data?.message || "Failed to delete account.";
             toast.error(msg);
         } finally {
@@ -129,22 +136,31 @@ const Settings = () => {
 
                     <Form.Group className="mb-3">
                         <Form.Label className="fw-bold">Enter Password to Confirm</Form.Label>
-                        <Form.Control
-                            type="password"
-                            placeholder="Your password"
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                        />
+                        {/* CHANGED: Added InputGroup with Eye Button */}
+                        <InputGroup>
+                            <Form.Control
+                                type={showPassword ? "text" : "password"}
+                                placeholder="Your password"
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                            />
+                            <Button
+                                variant="outline-secondary"
+                                onClick={() => setShowPassword(!showPassword)}
+                                title={showPassword ? "Hide password" : "Show password"}
+                            >
+                                {showPassword ? <FaEyeSlash /> : <FaEye />}
+                            </Button>
+                        </InputGroup>
                     </Form.Group>
 
-                    {/* SMART FORGOT PASSWORD LINK */}
+                    {/* FORGOT PASSWORD LINK */}
                     <div className="text-end">
                         <Button
                             variant="link"
                             className="p-0 text-decoration-none small"
                             onClick={() => {
                                 setShowDeleteModal(false);
-                                // Pass state so ForgotPassword knows to return here & auto-login
                                 navigate('/forgot-password', {
                                     state: {
                                         returnPath: '/settings',

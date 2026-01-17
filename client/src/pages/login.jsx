@@ -121,7 +121,7 @@ const Login = () => {
             toast.success("Login Successful!");
             navigate('/dashboard');
         } catch (err) {
-            toast.error(err.message);
+            toast.error("Invalid OTP");
             console.log("OTP verification failed:", err.message);
         }
     };
