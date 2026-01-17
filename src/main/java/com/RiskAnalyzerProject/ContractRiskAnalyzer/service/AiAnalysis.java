@@ -27,8 +27,8 @@ public class AiAnalysis {
 
     @Cacheable(value = "contractAnalysis", key = "#contractText.hashCode()")
     public String AnalysisContract(String contractText) {
-        String safeText = contractText.length() > 15000
-                ? contractText.substring(0, 15000) : contractText;
+        String safeText = contractText.length() > 10000
+                ? contractText.substring(0, 10000) : contractText;
         String prompt = """
                 ROLE:
                      You are a Senior Legal Risk Assessor with 20 years of experience in contract law.\s
@@ -95,14 +95,22 @@ public class AiAnalysis {
             // General Chat Mode
             prompt = "You are a General AI Legal Assistant. You can help with general legal concepts, definitions, and drafting advice.";
         }
-        List<Message> history = chatMemory.get(conversationId);
+        // 1. Retrieve full history
+        List<Message> fullHistory = chatMemory.get(conversationId);
+        int maxHistory = 20;
+        List<Message> recentHistory;
+        if (fullHistory.size() > maxHistory) {
+            recentHistory = fullHistory.subList(fullHistory.size() - maxHistory, fullHistory.size());
+        } else {
+            recentHistory = fullHistory;
+        }
         OpenAiChatOptions options = OpenAiChatOptions.builder()
                 .model("llama-3.3-70b-versatile")
                 .temperature(0.0)
                 .build();
         String response =  chatClient.prompt()
                 .system(prompt)
-                .messages(history)
+                .messages(recentHistory)
                 .user(question)
                 .options(options)
                 .call()

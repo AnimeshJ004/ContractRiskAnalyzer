@@ -65,16 +65,18 @@ public class AnalyzerController {
         return ResponseEntity.ok(savedContract);
 }
     @PostMapping("/chat")
-    public ResponseEntity<Map<String, String>> chatWithAI(@RequestBody ChatRequest request) {
+    public ResponseEntity<Map<String, String>> chatWithAI(@RequestBody ChatRequest request , Principal principal) {
             // Call the single unified method
             String conversationId = request.getConversationId();
             if (conversationId == null || conversationId.isEmpty()) {
                 conversationId = UUID.randomUUID().toString();
             }
+            String secureConversationId = principal.getName() + "_" + conversationId;
+
             String response = contractService.chatWithAi(
                     request.getQuestion(),
                     request.getContractId(),
-                    conversationId
+                    secureConversationId
             );
             return ResponseEntity.ok(Map.of(
                     "response", response,
