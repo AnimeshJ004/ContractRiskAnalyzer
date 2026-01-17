@@ -218,7 +218,7 @@ const ForgotPassword = () => {
                                         value={newPassword}
                                         onChange={(e) => setNewPassword(e.target.value)}
                                         required
-                                        placeholder="Min 6 characters"
+                                        placeholder="Min 8 characters"
                                         className="form-control-lg"
                                     />
                                     <Button variant="outline-secondary" onClick={() => setShowPassword(!showPassword)}>

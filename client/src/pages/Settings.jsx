@@ -45,9 +45,9 @@ const Settings = () => {
         setLoading(true);
         try {
             // Call the UserController endpoint
-            await api.delete('/users/delete-account', {
-                data: { password: password } // Axios requires 'data' key for DELETE body
-            });
+            await api.post('/users/delete-account', {
+                            password: password
+                        });
 
             // Success: Cleanup and Redirect
             localStorage.removeItem('jwtToken');

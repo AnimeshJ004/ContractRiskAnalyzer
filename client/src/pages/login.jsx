@@ -77,7 +77,12 @@ const Login = () => {
             setCanResend(false);
             toast.success("OTP sent to your email!");
         } catch (err) {
-            console.log("Login stopped:", err.message);
+           if (err.response && err.response.status === 404) {
+               toast.error("Account does not exist. Redirecting to Register...");
+               setTimeout(() => navigate('/register'), 2000);
+           } else {
+               toast.error("Login failed. Check username/password.");
+           }
         } finally {
             setLoading(false);
         }
@@ -116,6 +121,7 @@ const Login = () => {
             toast.success("Login Successful!");
             navigate('/dashboard');
         } catch (err) {
+            toast.error(err.message);
             console.log("OTP verification failed:", err.message);
         }
     };

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import api from '../api/axiosConfig';
 import { Container, Card, Form, Button, InputGroup, OverlayTrigger, Tooltip } from 'react-bootstrap';
-import { FaUserCheck, FaEye, FaEyeSlash, FaSyncAlt, FaCopy, FaArrowLeft } from 'react-icons/fa'; // Added FaArrowLeft
+import { FaUserCheck, FaEye, FaEyeSlash, FaSyncAlt, FaCopy, FaArrowLeft } from 'react-icons/fa';
 import { toast } from 'react-toastify';
 
 const CompleteRegistration = () => {
@@ -62,21 +62,27 @@ const CompleteRegistration = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
-            await api.post('/auth/oauth-complete', {
+            // 1. Call the completion endpoint
+            // This endpoint creates the user AND returns the JWT token
+            const response = await api.post('/auth/oauth-complete', {
                 email: formData.email,
                 username: formData.username,
                 password: formData.password,
                 tempToken: formData.tempToken
             });
 
-            const response = await api.post('/auth/login', {
-                username: formData.username,
-                password: formData.password
-            });
+            // 2. Use the token directly from the response
+            const token = response.data.token;
 
-            localStorage.setItem('jwtToken', response.data.token);
-            toast.success("Account Created! Welcome to the Dashboard.");
-            navigate('/dashboard');
+            if (token) {
+                localStorage.setItem('jwtToken', token);
+                toast.success("Account Created! Welcome to the Dashboard.");
+                navigate('/dashboard');
+            } else {
+                // If for some reason token is missing
+                throw new Error("Registration successful, but login failed. Please login manually.");
+            }
+
         } catch (error) {
             const msg = error.response?.data?.message || "Registration failed.";
             toast.error(msg);
@@ -88,7 +94,7 @@ const CompleteRegistration = () => {
             <Card style={{ width: '500px' }} className="shadow-lg border-0">
                 <Card.Body className="p-5">
 
-                    {/* --- NEW BACK BUTTON --- */}
+                    {/* BACK BUTTON */}
                     <div className="text-start mb-4">
                         <Button
                             variant="link"
@@ -98,7 +104,6 @@ const CompleteRegistration = () => {
                             <FaArrowLeft className="me-2" /> Back to Home
                         </Button>
                     </div>
-                    {/* ----------------------- */}
 
                     <div className="text-center mb-4">
                         <FaUserCheck size={40} className="text-success mb-2" />

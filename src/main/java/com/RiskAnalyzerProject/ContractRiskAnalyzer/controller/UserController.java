@@ -16,7 +16,7 @@ public class UserController {
     private UserService userService;
 
     // Endpoint: DELETE /users/delete-account
-    @DeleteMapping("/delete-account")
+    @PostMapping("/delete-account")
     public ResponseEntity<?> deleteMyAccount(@RequestBody Map<String, String> request, Principal principal) {
         // Extract data
         String password = request.get("password");

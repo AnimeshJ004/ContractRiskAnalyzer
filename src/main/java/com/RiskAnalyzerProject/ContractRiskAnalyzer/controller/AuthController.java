@@ -20,7 +20,7 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/auth")
-@CrossOrigin(origins = "*")
+@CrossOrigin(origins = "http://localhost:5173", allowCredentials = "true")
 public class AuthController {
 
     @Autowired
@@ -49,7 +49,7 @@ public class AuthController {
             String message = authService.loginUser(user);
             Map<String, String> response = new HashMap<>();
             response.put("message", message);
-            response.put("message", "OTP_Sent Successfully");
+            response.put("status", "OTP_Sent Successfully");
             return ResponseEntity.ok(response);
     }
     @PostMapping("/login/verify")
@@ -77,25 +77,26 @@ public class AuthController {
         return ResponseEntity.ok(response);
     }
 
-    @DeleteMapping("/delete")
-    public ResponseEntity<?> deleteAccount(Principal principal) {
-        authService.deleteAccount(principal.getName());
-        return ResponseEntity.ok(Map.of("message", "Account deleted successfully"));
-    }
-    @PostMapping("/forgot-password")
-    public ResponseEntity<?> forgotPassword(@RequestParam String email) {
+    @PostMapping("/forgot-password/send-otp")
+    public ResponseEntity<?> forgotPassword(@RequestBody Map<String, String> request) {
+        String email = request.get("email");
         authService.initiatePasswordReset(email);
         return ResponseEntity.ok(Map.of("message", "Reset Password Successfully"));
     }
-    @PostMapping("/reset-password")
-    public ResponseEntity<?> resetPassword(@RequestBody ResetPasswordRequest request) {
-        authService.resetPassword(request.getEmail(), request.getOtp(), request.getNewPassword());
-        return ResponseEntity.ok(Map.of("message", "Password reset successfully. You can now login."));
-    }
-    @PostMapping("/verify-otp")
-    public ResponseEntity<?> verifyOtp(@RequestParam String email, @RequestParam String otp) {
+    @PostMapping("/forgot-password/verify-otp")
+    public ResponseEntity<?> verifyForgotOtp(@RequestBody Map<String, String> request) {
+        String email = request.get("email");
+        String otp = request.get("otp");
         authService.verifyOtp(email, otp);
         return ResponseEntity.ok(Map.of("message", "OTP Verified Successfully"));
+    }
+    @PostMapping("/forgot-password/reset")
+    public ResponseEntity<?> resetPassword(@RequestBody Map<String, String> request) {
+        String email = request.get("email");
+        String otp = request.get("otp");
+        String newPassword = request.get("newPassword");
+        authService.resetPassword(email, otp, newPassword);
+        return ResponseEntity.ok(Map.of("message", "Password reset successfully. You can now login."));
     }
     @PostMapping("/oauth-complete")
     public ResponseEntity<?> completeOAuthRegistration(@RequestBody com.RiskAnalyzerProject.ContractRiskAnalyzer.dto.OAuth2CompleteRequest request) {
@@ -104,22 +105,29 @@ public class AuthController {
             return ResponseEntity.status(401).body(Map.of("error", "Invalid or expired registration session."));
         }
 
-        // 2. Determine Password (User provided OR Dummy)
+        // 2. CHECK: If user already exists, just return the login token
+        // (This handles the case where a previous attempt created the user but failed to redirect)
+        if (authService.emailExists(request.getEmail())) { // You might need to add this method to AuthService or use UserRepository directly
+            String token = jwtUtil.generateToken(request.getEmail()); // Use email or fetch actual username
+            return ResponseEntity.ok(Map.of("token", token));
+        }
+
+        // 3. Determine Password (User provided OR Dummy)
         String finalPassword = (request.getPassword() != null && !request.getPassword().isEmpty())
                 ? request.getPassword()
-                : java.util.UUID.randomUUID().toString(); // Dummy Password
+                : java.util.UUID.randomUUID().toString();
 
-        // 3. Create User
+        // 4. Create User
         User user = new User();
         user.setUsername(request.getUsername());
         user.setEmail(request.getEmail());
         user.setPassword(finalPassword);
         user.setRole("USER");
 
-        // 4. Save User (using your service logic ideally, but direct here for brevity)
+        // 5. Save User
         authService.registerUser(user);
 
-        // 5. Generate Real Login Token
+        // 6. Generate Real Login Token
         String token = jwtUtil.generateToken(user.getUsername());
 
         return ResponseEntity.ok(Map.of("token", token));

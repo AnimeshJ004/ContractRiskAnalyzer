@@ -63,14 +63,20 @@ public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHan
         } else {
             // SCENARIO: New User
 
-            // Redirect to "Complete Registration" page (even if intent was 'login', because they don't exist yet)
-            String tempToken = jwtUtil.generateToken(email);
-            String targetUrl = "http://localhost:5173/complete-registration"
-                    + "?email=" + URLEncoder.encode(email, StandardCharsets.UTF_8)
-                    + "&name=" + URLEncoder.encode(name != null ? name : "", StandardCharsets.UTF_8)
-                    + "&tempToken=" + tempToken;
-
-            getRedirectStrategy().sendRedirect(request, response, targetUrl);
+            if ("login".equals(authIntent)) {
+                // --- STRICT CHECK: BLOCK CREATION ON LOGIN ---
+                // User clicked "Login" but has no account -> Redirect to Register Page
+                String targetUrl = "http://localhost:5173/register?error=account_not_found";
+                getRedirectStrategy().sendRedirect(request, response, targetUrl);
+            } else {
+                // User clicked "Register" -> Allow creation
+                String tempToken = jwtUtil.generateToken(email);
+                String targetUrl = "http://localhost:5173/complete-registration"
+                        + "?email=" + URLEncoder.encode(email, StandardCharsets.UTF_8)
+                        + "&name=" + URLEncoder.encode(name != null ? name : "", StandardCharsets.UTF_8)
+                        + "&tempToken=" + tempToken;
+                getRedirectStrategy().sendRedirect(request, response, targetUrl);
+            }
         }
     }
 }

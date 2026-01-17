@@ -41,9 +41,15 @@ public class AuthService {
     @Autowired
     private TokenBlacklistService tokenBlacklistService;
 
+    public boolean emailExists(String email) {
+        return userRepository.existsByEmail(email);
+    }
     public String registerUser(User user) {
         if (userRepository.existsByEmail(user.getEmail())) {
             throw new AppException("Error: Email is already in use!");
+        }
+        if (userRepository.existsByUsername(user.getUsername())) {
+            throw new AppException("Error: Username is already taken! Please choose another.");
         }
         user.setVerified(true);
         user.setPassword(passwordEncoder.encode(user.getPassword()));
@@ -55,6 +61,9 @@ public class AuthService {
     }
 
     public String loginUser(User loginRequest) {
+        if (!userRepository.existsByUsername(loginRequest.getUsername())) {
+            throw new ResourceNotFound("User not found");
+        }
         try {
             authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(
@@ -121,12 +130,7 @@ public class AuthService {
         return userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFound("User not found"));
     }
-    // 2. Delete User Account
-    public void deleteAccount(String username) {
-        User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new ResourceNotFound("User not found"));
-        userRepository.delete(user);
-    }
+
     public void initiatePasswordReset(String email) {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResourceNotFound("User not found with email: " + email));
