@@ -2,15 +2,15 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
-import Home from './pages/Home';
-import Login from './pages/Login';
-import Register from './pages/Register';
-import Dashboard from './pages/Dashboard';
-import Chat from './pages/Chat';
-import ContractDetails from './pages/ContractDetails';
-import Settings from './pages/Settings';
-import ForgotPassword from './pages/ForgotPassword';
-import CompleteRegistration from './pages/CompleteRegistration';
+import home from './pages/home';
+import login from './pages/login';
+import register from './pages/register';
+import dashboard from './pages/dashboard';
+import chat from './pages/chat';
+import contractDetails from './pages/contractDetails';
+import settings from './pages/settings';
+import forgotPassword from './pages/forgotPassword';
+import completeRegistration from './pages/completeRegistration';
 
 const PrivateRoute = ({ children }) => {
     const token = localStorage.getItem('jwtToken');
@@ -22,24 +22,24 @@ function App() {
     <Router>
       <ToastContainer position="top-center" autoClose={3000} />
       <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/" element={<home />} />
+        <Route path="/login" element={<login />} />
+        <Route path="/register" element={<register />} />
+        <Route path="/forgot-password" element={<forgotPassword />} />
         <Route
             path="/dashboard"
             element={
                 <PrivateRoute>
-                    <Dashboard />
+                    <dashboard />
                 </PrivateRoute>
             }
         />
-        <Route path="/complete-registration" element={<CompleteRegistration />} />
+        <Route path="/complete-registration" element={<completeRegistration />} />
         <Route
             path="/chat/:contractId"
             element={
                 <PrivateRoute>
-                    <Chat />
+                    <chat />
                 </PrivateRoute>
             }
         />
@@ -47,7 +47,7 @@ function App() {
             path="/contracts/:id"
             element={
                 <PrivateRoute>
-                    <ContractDetails />
+                    <contractDetails />
                 </PrivateRoute>
             }
         />
@@ -55,7 +55,7 @@ function App() {
             path="/settings"
             element={
                 <PrivateRoute>
-                    <Settings />
+                    <settings />
                 </PrivateRoute>
             }
         />

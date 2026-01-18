@@ -34,4 +34,5 @@ build/
 .vscode/
 .idea/
 application.yml
-node_modules
+TODO.md
+TODO_FIXES.md
