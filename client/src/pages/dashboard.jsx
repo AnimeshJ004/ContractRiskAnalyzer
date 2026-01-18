@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import api, { deleteContract } from '../api/axiosConfig';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import { Container, Navbar, Button, Row, Col, Card, Form, ProgressBar, Badge, Modal, Dropdown } from 'react-bootstrap';
+import { Container, Navbar, Button, Row, Col, Card, Form, ProgressBar, Badge, Modal, Dropdown, Alert } from 'react-bootstrap';
 import {
     FaCheckCircle,
     FaExclamationTriangle,
@@ -15,35 +15,40 @@ import {
     FaComments,
     FaUserCircle,
     FaCog,
-    FaSearch,
-    FaPlus,
-    FaUserTag,
-    FaUserShield // New Icon for Admin
+    FaShieldAlt,
+    FaUser,
+    FaBatteryHalf,
+    FaInfinity,
+    FaCreditCard
 } from 'react-icons/fa';
 
 const Dashboard = () => {
+    // --- STATE MANAGEMENT ---
     const [contracts, setContracts] = useState([]);
     const [uploading, setUploading] = useState(false);
+    // User Profile State
     const [user, setUser] = useState({ username: 'User', email: '', role: 'USER' });
+    // Rate Limiting State
+    const [remainingQuota, setRemainingQuota] = useState(null);
 
-    // --- MODAL STATE ---
+    const [selectedFile, setSelectedFile] = useState(null);
+    const fileInputRef = useRef(null);
+
+    // Modal State
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [contractToDelete, setContractToDelete] = useState(null);
 
     const navigate = useNavigate();
+    const isAdmin = user.role === 'ADMIN';
 
+    // --- INITIAL DATA FETCHING ---
     useEffect(() => {
-        fetchContracts();
         fetchUserProfile();
+        fetchContracts();
+        fetchQuota();
     }, []);
 
-    const fetchContracts = async () => {
-        try {
-            const response = await api.get('/contracts');
-            setContracts(response.data);
-        } catch (error) { console.error(error); }
-    };
-
+    // --- API CALLS ---
     const fetchUserProfile = async () => {
         try {
             const response = await api.get('/auth/profile');
@@ -53,10 +58,27 @@ const Dashboard = () => {
         }
     };
 
-    // --- CHECK ADMIN ROLE ---
-    const isAdmin = user.role === 'ADMIN';
+    const fetchContracts = async () => {
+        try {
+            const response = await api.get('/contracts');
+            setContracts(response.data);
+        } catch (error) {
+            console.error(error);
+        }
+    };
+
+    const fetchQuota = async () => {
+        try {
+            const response = await api.get('/contracts/rate-limit');
+            setRemainingQuota(response.data);
+        } catch (error) {
+            console.error("Failed to fetch quota");
+        }
+    };
 
     // --- HANDLERS ---
+
+    // 1. Delete Handlers
     const handleDeleteClick = (id, e) => {
         e.stopPropagation();
         setContractToDelete(id);
@@ -68,7 +90,7 @@ const Dashboard = () => {
         try {
             await deleteContract(contractToDelete);
             toast.success("Contract deleted successfully!");
-            fetchContracts();
+            fetchContracts(); // Refresh list
         } catch (error) {
             toast.error("Failed to delete contract");
         } finally {
@@ -77,11 +99,20 @@ const Dashboard = () => {
         }
     };
 
-    const handleUpload = async (e) => {
+    const handleFileSelect = (e) => {
         const file = e.target.files[0];
-        if (!file) return;
+        if (file) {
+            setSelectedFile(file);
+        }
+    };
+
+    // 2. Upload Handler
+    const handleUpload = async (e) => {
+        if (!selectedFile) return;
+
         const formData = new FormData();
-        formData.append("file", file);
+        formData.append("file", selectedFile);
+
         setUploading(true);
         try {
             toast.info("Analyzing contract...");
@@ -89,16 +120,73 @@ const Dashboard = () => {
                 headers: { 'Content-Type': 'multipart/form-data' }
             });
             toast.success("Upload Complete!");
-            fetchContracts();
+            fetchContracts(); // Refresh list
+            fetchQuota();
+            setSelectedFile(null);
+            if (fileInputRef.current) {
+                fileInputRef.current.value = "";
+            }
         } catch (error) {
-            toast.error("Upload failed!");
+            const msg = error.response?.data?.message || "Upload failed!";
+            toast.error(msg);
         } finally {
             setUploading(false);
         }
     };
 
+    // 3. Payment Handler (Razorpay)
+    const handleBuyCredits = async (planType) => {
+        const amount = planType === '2_TOKENS' ? 50 : 80; // Price in Rupees
+
+        try {
+            // A. Create Order
+            const orderRes = await api.post('/payment/create-order', { amount });
+            const orderData = JSON.parse(orderRes.data); // Razorpay returns stringified JSON
+
+            // B. Open Razorpay Popup
+            const options = {
+                key: "YOUR_RAZORPAY_KEY_ID_HERE", // <--- REPLACE WITH YOUR ACTUAL KEY ID
+                amount: orderData.amount,
+                currency: "INR",
+                name: "Contract Risk Analyzer",
+                description: planType === '2_TOKENS' ? "Top-up: 2 Credits" : "Top-up: 5 Credits",
+                order_id: orderData.id,
+                handler: async function (response) {
+                    // C. Verify Payment
+                    try {
+                        await api.post('/payment/verify-payment', {
+                            planType: planType,
+                            paymentId: response.razorpay_payment_id,
+                            orderId: response.razorpay_order_id,
+                            signature: response.razorpay_signature
+                        });
+                        toast.success("Payment Successful! Credits added.");
+                        fetchQuota(); // Refresh quota immediately
+                    } catch (err) {
+                        toast.error("Payment verification failed.");
+                    }
+                },
+                prefill: {
+                    name: user.username,
+                    email: user.email
+                },
+                theme: {
+                    color: "#0d6efd"
+                }
+            };
+
+            const rzp1 = new window.Razorpay(options);
+            rzp1.open();
+
+        } catch (error) {
+            console.error(error);
+            toast.error("Failed to initiate payment. Try again.");
+        }
+    };
+
+    // 4. Logout Handler
     const handleLogout = async () => {
-        try { await api.post('/auth/logout'); } catch(e) {}
+        try { await api.post('/auth/logout'); } catch (e) { }
         localStorage.removeItem('jwtToken');
         navigate('/');
         toast.success("Logout Successful!")
@@ -107,245 +195,254 @@ const Dashboard = () => {
     // Helper for Risk Badges
     const getRiskBadge = (riskLevel = 'low') => {
         const riskLevels = {
-            low: { text: 'Low Risk', bg: 'success', icon: <FaCheckCircle /> },
-            medium: { text: 'Medium Risk', bg: 'warning', icon: <FaExclamationTriangle /> },
-            high: { text: 'High Risk', bg: 'danger', icon: <FaExclamationTriangle /> }
+            low: { text: 'Low Risk', variant: 'success', icon: <FaCheckCircle /> },
+            medium: { text: 'Medium Risk', variant: 'warning', icon: <FaExclamationTriangle /> },
+            high: { text: 'High Risk', variant: 'danger', icon: <FaExclamationTriangle /> }
         };
-        return riskLevels[riskLevel?.toLowerCase()] || riskLevels.low;
+        return riskLevels[riskLevel] || riskLevels.low;
     };
 
     return (
-        <div className="min-vh-100 position-relative overflow-hidden d-flex flex-column">
-
-            {/* --- BACKGROUND BLOBS (Dynamic for Admin) --- */}
-            <div className={`position-absolute rounded-circle ${isAdmin ? 'bg-danger' : 'bg-primary'}`}
-                 style={{ top: '-10%', right: '-5%', width: '50vw', height: '50vw', maxWidth: '600px', maxHeight: '600px', filter: 'blur(80px)', opacity: 0.05, zIndex: 0 }} />
-            <div className={`position-absolute rounded-circle ${isAdmin ? 'bg-dark' : 'bg-success'}`}
-                 style={{ bottom: '-10%', left: '-10%', width: '60vw', height: '60vw', maxWidth: '700px', maxHeight: '700px', filter: 'blur(100px)', opacity: 0.05, zIndex: 0 }} />
-
-            {/* --- NAVBAR (Dynamic Styling) --- */}
-            <Navbar
-                expand="lg"
-                className="px-4 py-3 fixed-top transition-all"
-                style={{
-                    backdropFilter: 'blur(10px)',
-                    backgroundColor: isAdmin ? 'rgba(30, 30, 45, 0.9)' : 'rgba(255, 255, 255, 0.7)',
-                    borderBottom: isAdmin ? '1px solid rgba(255,255,255,0.1)' : '1px solid rgba(255,255,255,0.3)',
-                    transition: 'background-color 0.3s ease'
-                }}
-                variant={isAdmin ? "dark" : "light"}
-            >
+        <div className="min-vh-100 fade-in">
+            {/* NAVBAR */}
+            <Navbar bg={isAdmin ? "dark" : "primary"} variant="dark" className="px-4 py-3 shadow-sm">
                 <Container fluid>
-                    <Navbar.Brand className={`fw-bold fs-4 d-flex align-items-center ${isAdmin ? 'text-white' : 'text-primary'}`} onClick={() => navigate('/')} style={{ cursor: 'pointer' }}>
-                        <FaFileContract className="me-2" />
-                        Contract Risk Analyzer
-                        {isAdmin && (
-                            <Badge bg="danger" className="ms-3 fs-6 rounded-pill px-3 shadow-sm d-flex align-items-center">
-                                <FaUserShield className="me-2" /> ADMIN PANEL
-                            </Badge>
-                        )}
+                    <Navbar.Brand className="fw-bold" onClick={() => navigate('/')} style={{ cursor: 'pointer' }}>
+                        {isAdmin ? <FaShieldAlt className="me-2 text-warning" /> : <FaFileContract className="me-2" />}
+                        {isAdmin ? "Admin Console" : "Contract Risk Analyzer"}
                     </Navbar.Brand>
 
                     <div className="d-flex gap-3 align-items-center">
-                        <Button
-                            variant={isAdmin ? "outline-light" : "light"}
-                            className={`d-flex align-items-center fw-semibold rounded-pill px-3 shadow-sm ${!isAdmin && 'text-primary'}`}
-                            onClick={() => navigate('/chat/general')}
-                        >
-                            <FaComments className="me-2" /> General Chat
+                        <Button variant="light" className="d-flex align-items-center fw-bold text-primary" onClick={() => navigate('/chat/general')}>
+                            <FaComments className="me-2" />General AI Chat
                         </Button>
 
                         <Dropdown align="end">
-                            <Dropdown.Toggle
-                                variant="transparent"
-                                id="profile-dropdown"
-                                className={`d-flex align-items-center border-0 p-0 fw-bold bg-transparent ${isAdmin ? 'text-white' : 'text-dark'}`}
-                            >
-                                <div className={`rounded-circle p-2 me-2 ${isAdmin ? 'bg-danger text-white' : 'bg-primary bg-opacity-10 text-primary'}`}>
-                                    {isAdmin ? <FaUserShield size={20} /> : <FaUserCircle size={20} />}
-                                </div>
-                                <div className="d-flex flex-column align-items-start lh-1 d-none d-md-block">
-                                    <span>{user.username || 'Account'}</span>
-                                    {isAdmin && <span className="small text-danger fw-light" style={{ fontSize: '0.7rem' }}></span>}
-                                </div>
+                            <Dropdown.Toggle variant="outline-light" id="profile-dropdown" className="d-flex align-items-center border-0" style={{ backgroundColor: 'rgba(255,255,255,0.2)' }}>
+                                <FaUserCircle size={20} className="me-2" />
+                                {user.username} {isAdmin && <Badge bg="warning" text="dark" className="ms-2">ADMIN</Badge>}
                             </Dropdown.Toggle>
-
-                            <Dropdown.Menu className="shadow-lg border-0 p-2 mt-3 rounded-4" style={{ minWidth: '220px' }}>
-                                <div className="px-3 py-2 border-bottom mb-2">
-                                    <div className="fw-bold text-dark">{user.username}</div>
+                            <Dropdown.Menu className="shadow-lg border-0 p-0 mt-2" style={{ minWidth: '260px' }}>
+                                <div className="px-4 py-3 bg-light border-bottom rounded-top">
+                                    <div className="fw-bold text-dark mb-1">{user.username}</div>
                                     <div className="small text-muted text-truncate">{user.email}</div>
+                                    <div className="mt-1"><Badge bg={isAdmin ? "danger" : "info"}>{user.role}</Badge></div>
                                 </div>
-                                <Dropdown.Item onClick={() => navigate('/settings')} className="rounded-3 py-2"><FaCog className="me-2 text-secondary" /> Settings</Dropdown.Item>
-                                <Dropdown.Divider />
-                                <Dropdown.Item onClick={handleLogout} className="rounded-3 py-2 text-danger"><FaSignOutAlt className="me-2" /> Logout</Dropdown.Item>
+                                <div className="p-2">
+                                    <Dropdown.Item onClick={() => navigate('/settings')} className="rounded py-2 d-flex align-items-center">
+                                        <FaCog className="me-3 text-secondary" /> Profile Settings
+                                    </Dropdown.Item>
+                                    <Dropdown.Divider />
+                                    <Dropdown.Item onClick={handleLogout} className="rounded py-2 text-danger d-flex align-items-center">
+                                        <FaSignOutAlt className="me-3" /> Logout
+                                    </Dropdown.Item>
+                                </div>
                             </Dropdown.Menu>
                         </Dropdown>
                     </div>
                 </Container>
             </Navbar>
 
-            {/* --- MAIN CONTENT --- */}
-            <Container className="py-5 mt-5 position-relative z-1 flex-grow-1">
+            <Container className="py-4">
 
-                {/* Header Section */}
-                <div className="d-flex justify-content-between align-items-end mb-5">
-                    <div>
-                        <h2 className="fw-bold mb-1">Dashboard</h2>
-                        <p className="text-muted mb-0">Manage your contracts and view risk reports.</p>
-                    </div>
-                    {/* Hidden input trigger logic */}
-                    <div className="d-none">
-                        <input id="hidden-file-input" type="file" onChange={handleUpload} accept="application/pdf" />
-                    </div>
-                </div>
-
-                {/* Upload Card */}
-                <Card className="border-0 shadow-sm mb-5 overflow-hidden position-relative" style={{ background: 'rgba(255, 255, 255, 0.6)', backdropFilter: 'blur(10px)', borderRadius: '20px' }}>
-                    <div className={`position-absolute top-0 start-0 w-100 h-100 opacity-10 ${isAdmin ? 'bg-gradient-danger' : 'bg-gradient-primary'}`} style={{ pointerEvents: 'none' }}></div>
-                    <Card.Body className="p-5 text-center position-relative z-1">
-                        <div className={`mb-4 d-inline-flex p-4 rounded-circle bg-white shadow-sm ${isAdmin ? 'text-danger' : 'text-primary'}`}>
-                            <FaUpload size={32} />
+                {/* QUOTA WARNING BANNER */}
+                {!isAdmin && remainingQuota?.remaining === 0 && (
+                    <Alert variant="warning" className="mb-4 shadow-sm border-warning">
+                        <div className="d-flex align-items-center justify-content-center fw-bold">
+                            <FaClock className="me-2 text-danger" size={20} />
+                            <span>
+                                Quota Exceeded: You have used your 2 free analysis credits.
+                                <br className="d-md-none" /> Please come back after 1 hour.
+                            </span>
                         </div>
-                        <h3 className="fw-bold mb-3">Upload New Contract</h3>
-                        <p className="text-muted mb-4 mx-auto" style={{ maxWidth: '500px' }}>
-                            Upload your PDF contract to get an instant AI risk assessment, summary, and recommendation report.
-                        </p>
+                    </Alert>
+                )}
 
-                        <div className="d-flex justify-content-center">
-                            <Button
-                                variant={isAdmin ? "danger" : "primary"}
-                                size="lg"
-                                className="px-5 py-3 rounded-pill shadow-lg hover-scale fw-bold d-flex align-items-center"
-                                onClick={() => document.getElementById('hidden-file-input').click()}
-                                disabled={uploading}
-                            >
-                                {uploading ? <><FaRobot className="me-2 fa-spin" /> Analyzing...</> : <><FaPlus className="me-2" /> Upload PDF</>}
-                            </Button>
+                {/* NEW: CREDIT TOP-UP SECTION */}
+                {!isAdmin && (
+                    <Card className="mb-4 border-primary shadow-sm" style={{ background: 'linear-gradient(to right, #f8f9fa, #e9ecef)' }}>
+                        <Card.Body className="d-flex justify-content-between align-items-center flex-wrap gap-3">
+                            <div className="d-flex align-items-center">
+                                <div className="bg-white p-3 rounded-circle shadow-sm me-3 text-primary">
+                                    <FaCreditCard size={24} />
+                                </div>
+                                <div>
+                                    <h5 className="fw-bold text-primary mb-1">Need more analysis credits?</h5>
+                                    <p className="text-muted mb-0 small">
+                                        Top up instantly to skip the waiting period. Credits never expire.
+                                    </p>
+                                </div>
+                            </div>
+                            <div className="d-flex gap-2">
+                                <Button variant="outline-primary" className="fw-semibold" onClick={() => handleBuyCredits('2_TOKENS')}>
+                                    Buy 2 Credits (₹50)
+                                </Button>
+                                <Button variant="primary" className="fw-bold shadow-sm" onClick={() => handleBuyCredits('5_TOKENS')}>
+                                    Buy 5 Credits (₹80) <Badge bg="warning" text="dark" className="ms-2 shadow-sm">-36% OFF</Badge>
+                                </Button>
+                            </div>
+                        </Card.Body>
+                    </Card>
+                )}
+
+                {/* UPLOAD CARD */}
+                <Card className="mb-5 border-0 shadow-sm" style={{ opacity: (!isAdmin && remainingQuota?.remaining === 0) ? 0.6 : 1 }}>
+                    <Card.Body className="p-5 text-center">
+                        <FaUpload size={48} className="text-primary mb-3" />
+                        <h4 className="fw-bold mb-3">Upload New Contract</h4>
+
+                        <div className="w-75 mx-auto">
+                            <Form.Group controlId="formFile" className="mb-3">
+                                <Form.Control
+                                    type="file"
+                                    ref={fileInputRef}
+                                    onChange={handleFileSelect}
+                                    accept="application/pdf"
+                                    disabled={uploading || (!isAdmin && remainingQuota?.remaining === 0)}
+                                    className="form-control-lg"
+                                />
+                            </Form.Group>
+
+                            {selectedFile && (
+                                <div className="fade-in">
+                                    <p className="text-muted small mb-2">Selected: {selectedFile.name}</p>
+                                    <Button
+                                        variant="success"
+                                        size="lg"
+                                        onClick={handleUpload}
+                                        disabled={uploading}
+                                        className="w-100 shadow-sm"
+                                    >
+                                        {uploading ? (
+                                            <>
+                                                <FaRobot className="me-2 pulse" /> Analyzing...
+                                            </>
+                                        ) : (
+                                            <>
+                                                <FaUpload className="me-2" /> Upload & Analyze
+                                            </>
+                                        )}
+                                    </Button>
+                                </div>
+                            )}
                         </div>
 
                         {uploading && (
-                            <div className="mt-4 w-50 mx-auto">
-                                <ProgressBar animated variant={isAdmin ? "danger" : "primary"} now={80} className="rounded-pill" style={{ height: '8px' }} />
-                                <div className="small text-muted mt-2">Processing document with AI...</div>
+                            <div className="mt-4">
+                                <ProgressBar animated now={75} className="w-50 mx-auto" />
+                                <div className="text-muted mt-2 small">This may take up to 30 seconds...</div>
                             </div>
                         )}
                     </Card.Body>
                 </Card>
 
-                {/* Contracts List */}
+                {/* CONTRACTS HEADER */}
                 <div className="d-flex justify-content-between align-items-center mb-4">
-                    <h4 className="fw-bold m-0">
-                        <FaFileContract className={`me-2 ${isAdmin ? 'text-danger' : 'text-primary'}`} />
-                        {isAdmin ? "All System Contracts" : "My Contracts"}
-                    </h4>
-                    <Badge bg="white" text="dark" className="border shadow-sm px-3 py-2 rounded-pill">
-                        {contracts.length} Documents
-                    </Badge>
+                    <div>
+                        <h4 className="fw-bold mb-0">
+                            {isAdmin ? <><FaShieldAlt className="me-2 text-danger" />All System Contracts</> : "My Contracts"}
+                        </h4>
+
+                        {!isAdmin && remainingQuota !== null && (
+                            <div className="mt-2">
+                                <Badge
+                                    bg={remainingQuota.remaining > 0 ? "success" : "danger"}
+                                    className="d-inline-flex align-items-center py-2 px-3"
+                                >
+                                    {remainingQuota.isUnlimited ? (
+                                        <>
+                                            <FaInfinity className="me-2" />
+                                            <span>Unlimited Uploads</span>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <FaBatteryHalf className="me-2" />
+                                            <span>Daily Credits: {remainingQuota.remaining} left</span>
+                                        </>
+                                    )}
+                                </Badge>
+                            </div>
+                        )}
+
+                        {isAdmin && <small className="text-muted d-block mt-1">You have full access to view and delete all files.</small>}
+                    </div>
+                    <Badge bg="secondary" className="fs-6">{contracts.length} found</Badge>
                 </div>
 
-                {contracts.length === 0 ? (
-                    <div className="text-center py-5 text-muted">
-                        <div className="mb-3 opacity-50"><FaSearch size={40} /></div>
-                        <p>No contracts uploaded yet.</p>
-                    </div>
-                ) : (
-                    <Row xs={1} md={2} lg={3} xl={4} className="g-4">
-                        {contracts.map((contract) => {
-                            // Parse Risk Logic
-                            let riskData = { level: 'low', score: 0 };
-                            try {
-                                if (contract.analysisJson) {
-                                    const json = JSON.parse(contract.analysisJson);
-                                    riskData.level = json.risk_level || 'low';
-                                }
-                            } catch(e) {}
+                {/* CONTRACTS GRID */}
+                <Row xs={1} md={2} lg={3} xl={4} className="g-4">
+                    {contracts.map((contract) => {
+                        let riskLevel = 'low';
+                        try {
+                            if (contract.analysisJson) {
+                                const analysis = JSON.parse(contract.analysisJson);
+                                if (analysis.risk_level) riskLevel = analysis.risk_level.toLowerCase();
+                            }
+                        } catch (e) { }
+                        const riskBadge = getRiskBadge(riskLevel);
 
-                            const badge = getRiskBadge(riskData.level);
+                        return (
+                            <Col key={contract.id}>
+                                <Card className={`h-100 border-0 shadow-sm ${isAdmin ? 'border-top border-warning border-3' : ''}`}>
+                                    <Card.Body className="d-flex flex-column">
+                                        <div className="d-flex justify-content-between align-items-start mb-3">
+                                            <FaFileContract size={24} className="text-primary" />
+                                            <Badge bg={riskBadge.variant} className="d-flex align-items-center">
+                                                {riskBadge.icon} <span className="ms-1">{riskBadge.text}</span>
+                                            </Badge>
+                                        </div>
 
-                            return (
-                                <Col key={contract.id}>
-                                    <Card className="h-100 border-0 shadow-sm hover-lift" style={{ borderRadius: '16px', transition: 'transform 0.2s' }}>
-                                        <Card.Body className="d-flex flex-column p-4">
-                                            <div className="d-flex justify-content-between align-items-start mb-3">
-                                                <div className="bg-light rounded p-2 text-secondary">
-                                                    <FaFileContract size={20} />
-                                                </div>
-                                                <Badge bg={badge.bg} className="d-flex align-items-center py-2 px-3 rounded-pill">
-                                                    {badge.icon} <span className="ms-1 text-capitalize">{badge.text}</span>
-                                                </Badge>
+                                        <Card.Title className="text-truncate fw-semibold mb-1" title={contract.filename}>
+                                            {contract.filename}
+                                        </Card.Title>
+
+                                        {isAdmin && (
+                                            <div className="mb-2 text-muted small bg-light rounded p-1 d-inline-block">
+                                                <FaUser className="me-1" /> Owner: <strong>{contract.ownerUsername}</strong>
                                             </div>
+                                        )}
 
-                                            <Card.Title className="fw-bold text-truncate mb-2" title={contract.filename}>
-                                                {contract.filename}
-                                            </Card.Title>
+                                        <Card.Text className="text-muted small mb-3">
+                                            <FaClock className="me-1" />
+                                            {new Date(contract.uploadDate).toLocaleDateString()}
+                                        </Card.Text>
 
-                                            {/* --- OWNER INFO --- */}
-                                            <div className="d-flex align-items-center mb-2">
-                                                <Badge bg={isAdmin ? "danger" : "light"} text={isAdmin ? "white" : "dark"} className={`border fw-normal d-flex align-items-center px-2 py-1 ${isAdmin && 'bg-opacity-75'}`}>
-                                                    <FaUserTag className={`me-2 ${isAdmin ? 'text-white' : 'text-primary'} opacity-75`} />
-                                                    {contract.ownerUsername || 'Unknown'}
-                                                </Badge>
-                                            </div>
-
-                                            <Card.Text className="text-muted small mb-4">
-                                                <FaClock className="me-1" /> {new Date(contract.uploadDate).toLocaleDateString()}
-                                            </Card.Text>
-
-                                            <div className="mt-auto d-grid gap-2">
-                                                <Button
-                                                    variant={isAdmin ? "outline-danger" : "outline-primary"}
-                                                    size="sm"
-                                                    className="rounded-pill fw-semibold"
-                                                    onClick={() => navigate(`/contracts/${contract.id}`)}
-                                                >
-                                                    View Report
-                                                </Button>
-
-                                                <div className="d-flex gap-2">
-                                                    <Button
-                                                        variant="light"
-                                                        size="sm"
-                                                        className={`flex-grow-1 rounded-pill ${isAdmin ? 'text-danger' : 'text-primary'}`}
-                                                        onClick={() => navigate(`/chat/${contract.id}`)}
-                                                    >
-                                                        <FaRobot /> Chat
-                                                    </Button>
-                                                    <Button
-                                                        variant="light"
-                                                        size="sm"
-                                                        className="rounded-circle text-danger hover-bg-danger"
-                                                        onClick={(e) => handleDeleteClick(contract.id, e)}
-                                                        title="Delete"
-                                                    >
-                                                        <FaTrash />
-                                                    </Button>
-                                                </div>
-                                            </div>
-                                        </Card.Body>
-                                    </Card>
-                                </Col>
-                            );
-                        })}
-                    </Row>
-                )}
+                                        <div className="mt-auto d-flex gap-2">
+                                            <Button variant="outline-primary" className="flex-grow-1" onClick={() => navigate(`/contracts/${contract.id}`)}>
+                                                Report
+                                            </Button>
+                                            <Button variant="primary" className="flex-grow-1" onClick={() => navigate(`/chat/${contract.id}`)}>
+                                                Chat
+                                            </Button>
+                                            <Button variant="outline-danger" onClick={(e) => handleDeleteClick(contract.id, e)} title="Delete Contract">
+                                                <FaTrash />
+                                            </Button>
+                                        </div>
+                                    </Card.Body>
+                                </Card>
+                            </Col>
+                        );
+                    })}
+                </Row>
             </Container>
 
-            {/* --- DELETE CONFIRMATION MODAL --- */}
-            <Modal show={showDeleteModal} onHide={() => setShowDeleteModal(false)} centered contentClassName="border-0 shadow-lg rounded-4 overflow-hidden">
-                <Modal.Header className="bg-danger text-white border-0">
-                    <Modal.Title className="fw-bold h5">
+            {/* DELETE MODAL */}
+            <Modal show={showDeleteModal} onHide={() => setShowDeleteModal(false)} centered>
+                <Modal.Header closeButton>
+                    <Modal.Title className="text-danger fw-bold">
                         <FaExclamationTriangle className="me-2" /> Confirm Deletion
                     </Modal.Title>
                 </Modal.Header>
-                <Modal.Body className="p-4 text-center">
-                    <p className="mb-1 fs-5">Are you sure?</p>
-                    <p className="text-muted small">This action will permanently delete the contract and all associated AI analysis data.</p>
+                <Modal.Body>
+                    <p className="mb-0">Are you sure you want to delete this contract?</p>
+                    <small className="text-muted">This action cannot be undone.</small>
+                    {isAdmin && <p className="text-danger fw-bold mt-2 small">Warning: As an Admin, you are deleting a user's file.</p>}
                 </Modal.Body>
-                <Modal.Footer className="border-0 justify-content-center pb-4">
-                    <Button variant="light" className="px-4 rounded-pill" onClick={() => setShowDeleteModal(false)}>
+                <Modal.Footer>
+                    <Button variant="secondary" onClick={() => setShowDeleteModal(false)}>
                         Cancel
                     </Button>
-                    <Button variant="danger" className="px-4 rounded-pill shadow-sm" onClick={confirmDelete}>
+                    <Button variant="danger" onClick={confirmDelete}>
                         Yes, Delete It
                     </Button>
                 </Modal.Footer>

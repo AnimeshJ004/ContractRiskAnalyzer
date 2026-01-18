@@ -66,11 +66,12 @@ public class AiAnalysis {
                 """ + safeText;
        // Force temperature to 0.0 for consistent analysis
         OpenAiChatOptions options = OpenAiChatOptions.builder()
-                .temperature(0.7) // 0.0 = Deterministic / Consistent
+                .temperature(0.1)
                 .build();
         // Call the AI model
         return chatClient.prompt()
                 .user(prompt)
+                .options(options)
                 .call()
                 .content();
 
