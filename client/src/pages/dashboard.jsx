@@ -26,11 +26,15 @@ const Dashboard = () => {
     // --- STATE MANAGEMENT ---
     const [contracts, setContracts] = useState([]);
     const [uploading, setUploading] = useState(false);
+
     // User Profile State
     const [user, setUser] = useState({ username: 'User', email: '', role: 'USER' });
+
     // Rate Limiting State
     const [remainingQuota, setRemainingQuota] = useState(null);
+    const [timerString, setTimerString] = useState(""); // For "43:12" countdown
 
+    // File Upload State
     const [selectedFile, setSelectedFile] = useState(null);
     const fileInputRef = useRef(null);
 
@@ -47,6 +51,32 @@ const Dashboard = () => {
         fetchContracts();
         fetchQuota();
     }, []);
+
+    // --- COUNTDOWN TIMER LOGIC ---
+    useEffect(() => {
+        let interval;
+        // Only run timer if we have a resetTime AND quota is 0
+        if (remainingQuota?.resetTime && remainingQuota.remaining === 0) {
+            interval = setInterval(() => {
+                const now = Date.now();
+                const diff = remainingQuota.resetTime - now;
+
+                if (diff <= 0) {
+                    setTimerString("");
+                    fetchQuota(); // Auto-refresh when timer hits 0
+                    clearInterval(interval);
+                } else {
+                    // Format milliseconds to MM:SS
+                    const minutes = Math.floor((diff / 1000 / 60) % 60);
+                    const seconds = Math.floor((diff / 1000) % 60);
+                    setTimerString(
+                        `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
+                    );
+                }
+            }, 1000);
+        }
+        return () => clearInterval(interval);
+    }, [remainingQuota]);
 
     // --- API CALLS ---
     const fetchUserProfile = async () => {
@@ -99,6 +129,7 @@ const Dashboard = () => {
         }
     };
 
+    // 2. File Selection
     const handleFileSelect = (e) => {
         const file = e.target.files[0];
         if (file) {
@@ -106,7 +137,7 @@ const Dashboard = () => {
         }
     };
 
-    // 2. Upload Handler
+    // 3. Upload Handler
     const handleUpload = async (e) => {
         if (!selectedFile) return;
 
@@ -121,7 +152,7 @@ const Dashboard = () => {
             });
             toast.success("Upload Complete!");
             fetchContracts(); // Refresh list
-            fetchQuota();
+            fetchQuota();     // Refresh quota
             setSelectedFile(null);
             if (fileInputRef.current) {
                 fileInputRef.current.value = "";
@@ -134,7 +165,7 @@ const Dashboard = () => {
         }
     };
 
-    // 3. Payment Handler (Razorpay)
+    // 4. Payment Handler (Razorpay)
     const handleBuyCredits = async (planType) => {
         const amount = planType === '2_TOKENS' ? 50 : 80; // Price in Rupees
 
@@ -184,7 +215,7 @@ const Dashboard = () => {
         }
     };
 
-    // 4. Logout Handler
+    // 5. Logout Handler
     const handleLogout = async () => {
         try { await api.post('/auth/logout'); } catch (e) { }
         localStorage.removeItem('jwtToken');
@@ -245,20 +276,19 @@ const Dashboard = () => {
 
             <Container className="py-4">
 
-                {/* QUOTA WARNING BANNER */}
+                {/* QUOTA WARNING BANNER WITH TIMER */}
                 {!isAdmin && remainingQuota?.remaining === 0 && (
                     <Alert variant="warning" className="mb-4 shadow-sm border-warning">
                         <div className="d-flex align-items-center justify-content-center fw-bold">
                             <FaClock className="me-2 text-danger" size={20} />
                             <span>
-                                Quota Exceeded: You have used your 2 free analysis credits.
-                                <br className="d-md-none" /> Please come back after 1 hour.
+                                Quota Exceeded. Refill in: <span className="text-danger fs-5 ms-2 font-monospace">{timerString || "Calculating..."}</span>
                             </span>
                         </div>
                     </Alert>
                 )}
 
-                {/* NEW: CREDIT TOP-UP SECTION */}
+                {/* CREDIT TOP-UP SECTION */}
                 {!isAdmin && (
                     <Card className="mb-4 border-primary shadow-sm" style={{ background: 'linear-gradient(to right, #f8f9fa, #e9ecef)' }}>
                         <Card.Body className="d-flex justify-content-between align-items-center flex-wrap gap-3">

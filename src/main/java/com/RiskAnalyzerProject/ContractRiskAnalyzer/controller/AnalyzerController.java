@@ -52,10 +52,15 @@ public class AnalyzerController {
     }
     @GetMapping("/rate-limit")
     public ResponseEntity<Map<String, Object>> getRateLimit(Principal principal) {
-        long remaining = rateLimitingService.getRemainingTokens(principal.getName());
+        String username = principal.getName();
+        long remaining = rateLimitingService.getRemainingTokens(username);
+        long waitForRefillMs = rateLimitingService.getTimeUntilRefill(username);
+
         return ResponseEntity.ok(Map.of(
                 "remaining", remaining,
-                "isUnlimited", remaining > 100 // Flag to help frontend imply "Admin/Unlimited"
+                "isUnlimited", remaining > 100,
+                // Send the absolute timestamp when the reset will happen
+                "resetTime", System.currentTimeMillis() + waitForRefillMs
         ));
     }
 

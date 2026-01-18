@@ -7,6 +7,8 @@ import io.github.bucket4j.Bucket;
 import io.github.bucket4j.Refill;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import io.github.bucket4j.EstimationProbe;
+import java.util.concurrent.TimeUnit;
 
 import java.time.Duration;
 import java.util.Map;
@@ -29,7 +31,14 @@ public class RateLimitingService {
         Bucket bucket = cache.computeIfAbsent(username, this::createNewBucket);
         return bucket.getAvailableTokens();
     }
-
+    public long getTimeUntilRefill(String username) {
+        Bucket bucket = cache.computeIfAbsent(username, this::createNewBucket);
+        // "Probe" the bucket: Can I consume 1 token?
+        // If yes, wait time is 0. If no, it tells us exactly how long to wait.
+        EstimationProbe probe = bucket.estimateAbilityToConsume(1);
+        long nanos = probe.getNanosToWaitForRefill();
+        return TimeUnit.NANOSECONDS.toMillis(nanos);
+    }
     private Bucket createNewBucket(String username) {
         User user = userRepository.findByUsername(username).orElse(null);
 
@@ -46,4 +55,5 @@ public class RateLimitingService {
                     .build();
         }
     }
+
 }
