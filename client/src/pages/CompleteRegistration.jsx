@@ -1,174 +1,174 @@
 import { useState, useEffect } from 'react';
-import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import api from '../api/axiosConfig';
-import { Container, Card, Form, Button, InputGroup, OverlayTrigger, Tooltip } from 'react-bootstrap';
-import { FaUserCheck, FaEye, FaEyeSlash, FaSyncAlt, FaCopy, FaArrowLeft } from 'react-icons/fa';
 import { toast } from 'react-toastify';
+import { Container, Card, Form, Button, InputGroup, Spinner } from 'react-bootstrap';
+import { FaUserCheck, FaLock, FaEye, FaEyeSlash, FaCheckCircle, FaUser, FaArrowLeft } from 'react-icons/fa';
 
 const CompleteRegistration = () => {
-    const [searchParams] = useSearchParams();
+    const [email, setEmail] = useState('');
+    const [username, setUsername] = useState('');
+    const [password, setPassword] = useState('');
+    const [showPassword, setShowPassword] = useState(false);
+    const [loading, setLoading] = useState(false);
+
     const navigate = useNavigate();
-
-    const [formData, setFormData] = useState({
-        email: '',
-        name: '',
-        username: '',
-        password: '',
-        tempToken: ''
-    });
-
-    const [showPassword, setShowPassword] = useState(true);
-
-    const generateRandomPassword = () => {
-        const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*";
-        let pass = "";
-        for(let i=0; i<14; i++) {
-            pass += chars.charAt(Math.floor(Math.random() * chars.length));
-        }
-        return pass;
-    };
+    const [searchParams] = useSearchParams();
 
     useEffect(() => {
-        const email = searchParams.get('email');
-        const name = searchParams.get('name');
-        const tempToken = searchParams.get('tempToken');
+        const emailParam = searchParams.get("email");
+        const nameParam = searchParams.get("name");
 
-        if (!email || !tempToken) {
-            toast.error("Invalid registration session.");
-            navigate('/login');
-            return;
+        if (emailParam) {
+            setEmail(emailParam);
+            if (nameParam) setUsername(nameParam.replace(/\s+/g, '').toLowerCase());
+        } else {
+            toast.error("Invalid registration link.");
+            navigate("/login");
         }
-
-        setFormData({
-            email,
-            name,
-            username: email.split('@')[0],
-            password: generateRandomPassword(),
-            tempToken
-        });
     }, [searchParams, navigate]);
-
-    const handleRegenerate = () => {
-        const newPass = generateRandomPassword();
-        setFormData({ ...formData, password: newPass });
-        toast.info("New password generated!");
-    };
-
-    const handleCopy = () => {
-        navigator.clipboard.writeText(formData.password);
-        toast.success("Password copied to clipboard!");
-    };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        setLoading(true);
         try {
-            // 1. Call the completion endpoint
-            // This endpoint creates the user AND returns the JWT token
-            const response = await api.post('/auth/oauth-complete', {
-                email: formData.email,
-                username: formData.username,
-                password: formData.password,
-                tempToken: formData.tempToken
-            });
-
-            // 2. Use the token directly from the response
-            const token = response.data.token;
-
-            if (token) {
-                localStorage.setItem('jwtToken', token);
-                toast.success("Account Created! Welcome to the Dashboard.");
-                navigate('/dashboard');
-            } else {
-                // If for some reason token is missing
-                throw new Error("Registration successful, but login failed. Please login manually.");
-            }
-
+            await api.post('/auth/oauth2/complete-registration', { email, username, password });
+            toast.success("Account setup complete! Please login.");
+            navigate("/login");
         } catch (error) {
-            const msg = error.response?.data?.message || "Registration failed.";
-            toast.error(msg);
+            toast.error(error.response?.data?.message || "Failed to complete registration.");
+        } finally {
+            setLoading(false);
         }
     };
 
     return (
-        <Container className="d-flex justify-content-center align-items-center min-vh-100 fade-in">
-            <Card style={{ width: '500px' }} className="shadow-lg border-0">
-                <Card.Body className="p-5">
+        <div className="min-vh-100 position-relative overflow-hidden d-flex align-items-center justify-content-center bg-light">
 
-                    {/* BACK BUTTON */}
-                    <div className="text-start mb-4">
-                        <Button
-                            variant="link"
-                            onClick={() => navigate('/')}
-                            className="p-0 text-decoration-none text-muted"
-                        >
-                            <FaArrowLeft className="me-2" /> Back to Home
-                        </Button>
-                    </div>
+            {/* --- BACKGROUND BLOBS --- */}
+            <div className="position-absolute rounded-circle bg-primary"
+                 style={{ top: '-10%', right: '-5%', width: '50vw', height: '50vw', maxWidth: '600px', maxHeight: '600px', filter: 'blur(80px)', opacity: 0.05, zIndex: 0 }} />
+            <div className="position-absolute rounded-circle bg-success"
+                 style={{ bottom: '-10%', left: '-10%', width: '60vw', height: '60vw', maxWidth: '700px', maxHeight: '700px', filter: 'blur(100px)', opacity: 0.05, zIndex: 0 }} />
 
-                    <div className="text-center mb-4">
-                        <FaUserCheck size={40} className="text-success mb-2" />
-                        <h3 className="fw-bold text-primary">Finalize Account</h3>
-                        <p className="text-muted small">
-                            Google verified! Set your credentials to finish.
-                        </p>
-                    </div>
+            {/* --- FLOATING BACK BUTTON --- */}
+            <div className="position-absolute top-0 start-0 p-4 z-2">
+                <Button
+                    variant="light"
+                    onClick={() => navigate('/login')}
+                    className="rounded-pill px-4 py-2 shadow-sm text-primary fw-bold hover-scale d-flex align-items-center"
+                    style={{ background: 'rgba(255,255,255,0.8)', border: '1px solid rgba(255,255,255,1)' }}
+                >
+                    <FaArrowLeft className="me-2" /> Back to Login
+                </Button>
+            </div>
 
-                    <Form onSubmit={handleSubmit}>
-                        <Form.Group className="mb-3">
-                            <Form.Label className="fw-semibold">Email (Verified)</Form.Label>
-                            <Form.Control type="email" value={formData.email} disabled className="bg-light" />
-                        </Form.Group>
+            <Container className="position-relative z-1 d-flex justify-content-center">
+                <Card className="border-0 shadow-lg overflow-hidden"
+                      style={{
+                          width: '550px',
+                          maxWidth: '95%',
+                          borderRadius: '24px',
+                          background: 'rgba(255, 255, 255, 0.65)',
+                          backdropFilter: 'blur(20px)',
+                          border: '1px solid rgba(255,255,255,0.5)'
+                      }}>
 
-                        <Form.Group className="mb-3">
-                            <Form.Label className="fw-semibold">Username</Form.Label>
-                            <Form.Control
-                                type="text"
-                                value={formData.username}
-                                onChange={(e) => setFormData({...formData, username: e.target.value})}
-                                required
-                            />
-                        </Form.Group>
+                    {/* Decorative Top Gradient */}
+                    <div className="position-absolute top-0 start-0 w-100" style={{ height: '6px', background: 'linear-gradient(90deg, #0d6efd, #198754)' }}></div>
 
-                        <Form.Group className="mb-4">
-                            <Form.Label className="fw-semibold d-flex justify-content-between">
-                                Password
-                                <small className="text-muted fw-normal">Auto-generated for security</small>
-                            </Form.Label>
-                            <InputGroup>
+                    <Card.Body className="p-4 px-md-5">
+
+                        {/* --- HEADER --- */}
+                        <div className="text-center mb-4 mt-3">
+                            <div className="bg-white p-3 rounded-circle shadow-sm d-inline-flex align-items-center justify-content-center mb-3 text-success" style={{ width: '70px', height: '70px' }}>
+                                <FaUserCheck size={32} />
+                            </div>
+                            <h3 className="fw-bold text-dark mb-1">Final Step</h3>
+                            <p className="text-muted small">Choose a username & password to finish setup</p>
+                        </div>
+
+                        <Form onSubmit={handleSubmit} className="fade-in">
+
+                            {/* Read-Only Email Field */}
+                            <Form.Group className="mb-3">
+                                <Form.Label className="fw-bold small text-secondary ps-2 mb-1">EMAIL ADDRESS</Form.Label>
                                 <Form.Control
-                                    type={showPassword ? "text" : "password"}
-                                    value={formData.password}
-                                    onChange={(e) => setFormData({...formData, password: e.target.value})}
-                                    required
+                                    type="text"
+                                    value={email}
+                                    readOnly
+                                    className="border-0 bg-light text-muted py-2 rounded-pill ps-3 shadow-sm"
+                                    style={{ cursor: 'not-allowed' }}
                                 />
-                                <Button variant="outline-secondary" onClick={() => setShowPassword(!showPassword)} title="Show/Hide">
-                                    {showPassword ? <FaEyeSlash /> : <FaEye />}
-                                </Button>
+                            </Form.Group>
 
-                                <OverlayTrigger placement="top" overlay={<Tooltip>Regenerate Random Password</Tooltip>}>
-                                    <Button variant="outline-primary" onClick={handleRegenerate}>
-                                        <FaSyncAlt />
+                            {/* Username Field */}
+                            <Form.Group className="mb-3">
+                                <Form.Label className="fw-bold small text-secondary ps-2 mb-1">CHOOSE USERNAME</Form.Label>
+                                <InputGroup className="shadow-sm rounded-pill overflow-hidden border-0">
+                                    <InputGroup.Text className="bg-white border-0 ps-3">
+                                        <FaUser className="text-primary opacity-50" />
+                                    </InputGroup.Text>
+                                    <Form.Control
+                                        type="text"
+                                        placeholder="Username"
+                                        value={username}
+                                        onChange={(e) => setUsername(e.target.value)}
+                                        required
+                                        className="border-0 bg-white py-2"
+                                        style={{ boxShadow: 'none' }}
+                                    />
+                                </InputGroup>
+                            </Form.Group>
+
+                            {/* Password Field */}
+                            <Form.Group className="mb-4">
+                                <Form.Label className="fw-bold small text-secondary ps-2 mb-1">CREATE PASSWORD</Form.Label>
+                                <InputGroup className="shadow-sm rounded-pill overflow-hidden border-0">
+                                    <InputGroup.Text className="bg-white border-0 ps-3">
+                                        <FaLock className="text-primary opacity-50" />
+                                    </InputGroup.Text>
+                                    <Form.Control
+                                        type={showPassword ? "text" : "password"}
+                                        placeholder="Min 8 characters"
+                                        value={password}
+                                        onChange={(e) => setPassword(e.target.value)}
+                                        required
+                                        className="border-0 bg-white py-2"
+                                        style={{ boxShadow: 'none' }}
+                                    />
+                                    <Button
+                                        variant="white"
+                                        className="bg-white border-0 text-secondary pe-3"
+                                        onClick={() => setShowPassword(!showPassword)}
+                                    >
+                                        {showPassword ? <FaEyeSlash /> : <FaEye />}
                                     </Button>
-                                </OverlayTrigger>
+                                </InputGroup>
+                            </Form.Group>
 
-                                <OverlayTrigger placement="top" overlay={<Tooltip>Copy to Clipboard</Tooltip>}>
-                                    <Button variant="outline-success" onClick={handleCopy}>
-                                        <FaCopy />
-                                    </Button>
-                                </OverlayTrigger>
-                            </InputGroup>
-                            <Form.Text className="text-muted small">
-                                You can use this strong password or type your own.
-                            </Form.Text>
-                        </Form.Group>
+                            <Button
+                                variant="success"
+                                type="submit"
+                                className="w-100 rounded-pill py-2 fw-bold shadow-sm hover-scale d-flex align-items-center justify-content-center"
+                                disabled={loading}
+                                style={{ height: '45px' }}
+                            >
+                                {loading ? <Spinner animation="border" size="sm" /> : <><FaCheckCircle className="me-2" /> Complete Setup</>}
+                            </Button>
 
-                        <Button variant="primary" type="submit" size="lg" className="w-100 fw-bold">
-                            Create Account & Login
-                        </Button>
-                    </Form>
-                </Card.Body>
-            </Card>
-        </Container>
+                        </Form>
+
+                        <div className="text-center mt-4 mb-2">
+                            <p className="text-muted small">
+                                This ensures you have full access to all features.
+                            </p>
+                        </div>
+
+                    </Card.Body>
+                </Card>
+            </Container>
+        </div>
     );
 };
 

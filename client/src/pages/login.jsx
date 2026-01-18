@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import api from '../api/axiosConfig';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import { Container, Card, Form, Button, Spinner, InputGroup } from 'react-bootstrap';
+import { Container, Card, Form, Button, Spinner, InputGroup, Row, Col } from 'react-bootstrap';
 import {
     FaShieldAlt,
     FaUser,
@@ -11,7 +11,8 @@ import {
     FaArrowLeft,
     FaEye,
     FaEyeSlash,
-    FaRedo, // New Icon
+    FaRedo,
+    FaSignInAlt,
     FaGoogle
 } from 'react-icons/fa';
 
@@ -21,90 +22,76 @@ const Login = () => {
     const [password, setPassword] = useState('');
     const [otp, setOtp] = useState('');
 
-    // State for toggling password visibility
     const [showPassword, setShowPassword] = useState(false);
-
-    // --- RESEND OTP STATES ---
-    const [timer, setTimer] = useState(60); // 60 seconds = 1 Minutes
+    const [timer, setTimer] = useState(300);
     const [canResend, setCanResend] = useState(false);
-
     const [loading, setLoading] = useState(false);
+
     const navigate = useNavigate();
-//    Google LoginHandler
+    const [searchParams] = useSearchParams();
+
+    // --- OAUTH2 SUCCESS HANDLING ---
     useEffect(() => {
-        // Check if URL has ?token=...
-        const params = new URLSearchParams(window.location.search);
-        const token = params.get('token');
-        const error = params.get('error');
+        const token = searchParams.get("token");
+        const error = searchParams.get("error");
+
         if (token) {
-            localStorage.setItem('jwtToken', token);
-            toast.success("Login Successful via Google!");
-            navigate('/dashboard');
-        }else if (error === 'user_exists') {
-             // This catches the redirect from the Register page
-             toast.error("User already exists! Please login.");
-         }
-    }, []);
+            localStorage.setItem("jwtToken", token);
+            toast.success("Login Successful!");
+            navigate("/dashboard");
+        } else if (error) {
+            toast.error("Login failed. Please try again.");
+        }
+    }, [searchParams, navigate]);
+
     // --- TIMER LOGIC ---
     useEffect(() => {
         let interval;
-        // Run timer only if in Step 2 (OTP Step) and button is disabled
         if (step === 2 && !canResend && timer > 0) {
             interval = setInterval(() => {
                 setTimer((prev) => prev - 1);
             }, 1000);
         } else if (timer === 0) {
-            setCanResend(true); // Time's up, enable button
+            setCanResend(true);
         }
         return () => clearInterval(interval);
     }, [step, canResend, timer]);
 
-    // Format seconds into MM:SS
     const formatTime = (seconds) => {
         const minutes = Math.floor(seconds / 60);
         const secs = seconds % 60;
         return `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
     };
 
-    // --- STEP 1: LOGIN (SEND OTP) ---
+    // --- HANDLERS ---
     const handleLogin = async (e) => {
         e.preventDefault();
         setLoading(true);
         try {
             await api.post('/auth/login', { username, password });
             setStep(2);
-            setTimer(60); // Start Timer
+            setTimer(300);
             setCanResend(false);
             toast.success("OTP sent to your email!");
         } catch (err) {
-           if (err.response && err.response.status === 404) {
-               toast.error("Account does not exist. Redirecting to Register...");
-               setTimeout(() => navigate('/register'), 2000);
-           } else {
-               toast.error("Login failed. Check username/password.");
-           }
+            toast.error("Invalid credentials. Please try again.");
         } finally {
             setLoading(false);
         }
     };
-//  Handler Google Button
-   const handleGoogleLogin = () => {
-       // Set cookie to tell backend this is a LOGIN attempt
-        document.cookie = "auth_intent=login; path=/; max-age=300";
-        // Redirect browser directly to backend OAuth endpoint
+
+    const handleGoogleLogin = () => {
         window.location.href = "http://localhost:8080/oauth2/authorization/google";
     };
 
-    // --- RESEND OTP HANDLER ---
     const handleResendOtp = async () => {
         setLoading(true);
         try {
-            // Re-submit credentials to generate a fresh OTP
             await api.post('/auth/login', { username, password });
             toast.success("New OTP sent successfully!");
-            setTimer(60); // Reset timer
-            setCanResend(false); // Disable button
-            setOtp(''); // Clear old OTP input
+            setTimer(300);
+            setCanResend(false);
+            setOtp('');
         } catch (err) {
             toast.error("Failed to resend OTP.");
         } finally {
@@ -112,7 +99,6 @@ const Login = () => {
         }
     };
 
-    // --- STEP 2: VERIFY OTP ---
     const handleVerify = async (e) => {
         e.preventDefault();
         try {
@@ -121,173 +107,195 @@ const Login = () => {
             toast.success("Login Successful!");
             navigate('/dashboard');
         } catch (err) {
-            toast.error("Invalid OTP");
-            console.log("OTP verification failed:", err.message);
+            toast.error("Invalid or Expired OTP.");
         }
     };
 
     return (
-        <Container className="d-flex justify-content-center align-items-center fade-in" style={{ minHeight: '100vh' }}>
-            <Card style={{ width: '450px', maxWidth: '90%' }} className="shadow-lg border-0">
-                <Card.Body className="p-5">
+        <div className="min-vh-100 position-relative overflow-hidden d-flex align-items-center justify-content-center bg-light">
 
-                    {/* Back Button */}
-                    <div className="text-start mb-4">
-                        <Button
-                            variant="link"
-                            onClick={() => navigate('/')}
-                            className="p-0 text-decoration-none"
-                        >
-                            <FaArrowLeft className="me-2" /> Back to Home
-                        </Button>
-                    </div>
+            {/* --- BACKGROUND BLOBS --- */}
+            <div className="position-absolute rounded-circle bg-primary"
+                 style={{ top: '-10%', right: '-5%', width: '50vw', height: '50vw', maxWidth: '600px', maxHeight: '600px', filter: 'blur(80px)', opacity: 0.05, zIndex: 0 }} />
+            <div className="position-absolute rounded-circle bg-success"
+                 style={{ bottom: '-10%', left: '-10%', width: '60vw', height: '60vw', maxWidth: '700px', maxHeight: '700px', filter: 'blur(100px)', opacity: 0.05, zIndex: 0 }} />
 
-                    <div className="text-center mb-4">
-                        <FaShieldAlt size={48} className="text-primary mb-3" />
-                        <h2 className="fw-bold text-primary">Contract Risk Analyzer</h2>
-                        <p className="text-muted">Secure Login Portal</p>
-                    </div>
+            {/* --- FLOATING BACK BUTTON --- */}
+            <div className="position-absolute top-0 start-0 p-4 z-2">
+                <Button
+                    variant="light"
+                    onClick={() => navigate('/')}
+                    className="rounded-pill px-4 py-2 shadow-sm text-primary fw-bold hover-scale d-flex align-items-center"
+                    style={{ background: 'rgba(255,255,255,0.8)', border: '1px solid rgba(255,255,255,1)' }}
+                >
+                    <FaArrowLeft className="me-2" /> Back to Home
+                </Button>
+            </div>
 
-                    {step === 1 ? (
-                        <Form onSubmit={handleLogin}>
-                            {/* Username Field */}
-                            <Form.Group className="mb-4">
-                                <Form.Label className="fw-semibold">
-                                    <FaUser className="me-2 text-primary" />
-                                    Username
-                                </Form.Label>
-                                <Form.Control
-                                    type="text"
-                                    placeholder="Enter your username"
-                                    value={username}
-                                    onChange={(e) => setUsername(e.target.value)}
-                                    required
-                                    className="form-control-lg"
-                                />
-                            </Form.Group>
+            <Container className="position-relative z-1 d-flex justify-content-center">
+                <Card className="border-0 shadow-lg overflow-hidden"
+                      style={{
+                          width: '550px', // Adjusted width for vertical inputs
+                          maxWidth: '95%',
+                          borderRadius: '24px',
+                          background: 'rgba(255, 255, 255, 0.65)',
+                          backdropFilter: 'blur(20px)',
+                          border: '1px solid rgba(255,255,255,0.5)'
+                      }}>
 
-                            {/* Password Field */}
-                            <Form.Group className="mb-4">
-                                <div className="d-flex justify-content-between align-items-center">
-                                    <Form.Label className="fw-semibold mb-0">
-                                        <FaLock className="me-2 text-primary" />
-                                        Password
-                                    </Form.Label>
+                    {/* Decorative Top Gradient */}
+                    <div className="position-absolute top-0 start-0 w-100" style={{ height: '6px', background: 'linear-gradient(90deg, #0d6efd, #198754)' }}></div>
+
+                    <Card.Body className="p-4 px-md-5"> {/* Reduced vertical padding */}
+
+                        {/* --- HEADER --- */}
+                        <div className="text-center mb-4">
+                            <div className="bg-white p-3 rounded-circle shadow-sm d-inline-flex align-items-center justify-content-center mb-2 text-primary" style={{ width: '60px', height: '60px' }}>
+                                <FaShieldAlt size={28} />
+                            </div>
+                            <h3 className="fw-bold text-dark mb-0">Welcome Back</h3>
+                            <p className="text-muted small">Secure Contract Risk Analyzer Portal</p>
+                        </div>
+
+                        {step === 1 ? (
+                            <div className="fade-in">
+                                <Form onSubmit={handleLogin}>
+
+                                    {/* --- VERTICAL INPUTS (Line Wise) --- */}
+                                    <Form.Group className="mb-3">
+                                        <Form.Label className="fw-bold small text-secondary ps-2 mb-1">USERNAME</Form.Label>
+                                        <InputGroup className="shadow-sm rounded-pill overflow-hidden border-0">
+                                            <InputGroup.Text className="bg-white border-0 ps-3">
+                                                <FaUser className="text-primary opacity-50" />
+                                            </InputGroup.Text>
+                                            <Form.Control
+                                                type="text"
+                                                placeholder="Enter your username"
+                                                value={username}
+                                                onChange={(e) => setUsername(e.target.value)}
+                                                required
+                                                className="border-0 bg-white py-2"
+                                                style={{ boxShadow: 'none' }}
+                                            />
+                                        </InputGroup>
+                                    </Form.Group>
+
+                                    <Form.Group className="mb-4">
+                                        <Form.Label className="fw-bold small text-secondary ps-2 mb-1">PASSWORD</Form.Label>
+                                        <InputGroup className="shadow-sm rounded-pill overflow-hidden border-0">
+                                            <InputGroup.Text className="bg-white border-0 ps-3">
+                                                <FaLock className="text-primary opacity-50" />
+                                            </InputGroup.Text>
+                                            <Form.Control
+                                                type={showPassword ? "text" : "password"}
+                                                placeholder="Enter your password"
+                                                value={password}
+                                                onChange={(e) => setPassword(e.target.value)}
+                                                required
+                                                className="border-0 bg-white py-2"
+                                                style={{ boxShadow: 'none' }}
+                                            />
+                                            <Button
+                                                variant="white"
+                                                className="bg-white border-0 text-secondary pe-3"
+                                                onClick={() => setShowPassword(!showPassword)}
+                                            >
+                                                {showPassword ? <FaEyeSlash /> : <FaEye />}
+                                            </Button>
+                                        </InputGroup>
+                                        <div className="text-end mt-1">
+                                            <Button
+                                                variant="link"
+                                                className="p-0 text-decoration-none small text-muted"
+                                                style={{ fontSize: '0.75rem' }}
+                                                onClick={() => navigate('/forgot-password')}
+                                            >
+                                                Forgot Password?
+                                            </Button>
+                                        </div>
+                                    </Form.Group>
+
+                                    {/* --- SIDE-BY-SIDE BUTTONS (To Save Height) --- */}
+                                    <Row className="g-3">
+                                        <Col md={6}>
+                                            <Button
+                                                variant="primary"
+                                                type="submit"
+                                                className="w-100 rounded-pill py-2 fw-bold shadow-sm hover-scale d-flex align-items-center justify-content-center"
+                                                disabled={loading}
+                                                style={{ height: '45px' }}
+                                            >
+                                                {loading ? <Spinner animation="border" size="sm" /> : <><FaSignInAlt className="me-2" /> Sign In</>}
+                                            </Button>
+                                        </Col>
+                                        <Col md={6}>
+                                            <Button
+                                                variant="white"
+                                                className="w-100 rounded-pill py-2 fw-bold shadow-sm hover-scale d-flex align-items-center justify-content-center border"
+                                                onClick={handleGoogleLogin}
+                                                style={{ background: 'white', color: '#333', height: '45px' }}
+                                            >
+                                                <FaGoogle className="me-2 text-danger" /> Google Login
+                                            </Button>
+                                        </Col>
+                                    </Row>
+                                </Form>
+                            </div>
+                        ) : (
+                            <Form onSubmit={handleVerify} className="fade-in">
+                                <div className="alert alert-success py-1 text-center mb-4 border-0 rounded-pill small bg-success bg-opacity-10 text-success">
+                                    <FaCheckCircle className="me-2" />
+                                    OTP sent to your email!
+                                </div>
+                                <Form.Group className="mb-4">
+                                    <Form.Label className="fw-bold small text-secondary ps-2 text-center w-100">ENTER 6-DIGIT CODE</Form.Label>
+                                    <div className="d-flex justify-content-center">
+                                        <Form.Control
+                                            type="text"
+                                            placeholder="000000"
+                                            value={otp}
+                                            onChange={(e) => setOtp(e.target.value)}
+                                            required
+                                            className="form-control-lg text-center rounded-pill border-0 shadow-sm"
+                                            maxLength="6"
+                                            style={{ letterSpacing: '5px', fontWeight: 'bold', maxWidth: '300px' }}
+                                        />
+                                    </div>
+                                </Form.Group>
+
+                                <div className="d-flex justify-content-center mb-4">
                                     <Button
                                         variant="link"
-                                        className="p-0 text-decoration-none small"
-                                        style={{ fontSize: '0.9rem' }}
-                                        onClick={() => navigate('/forgot-password')}
+                                        onClick={handleResendOtp}
+                                        disabled={!canResend || loading}
+                                        className="p-0 text-decoration-none small text-muted"
                                     >
-                                        Forgot Password?
+                                        {canResend ? (
+                                            <span className="text-primary fw-bold"><FaRedo className="me-1" /> Resend OTP</span>
+                                        ) : (
+                                            <span>Resend code in {formatTime(timer)}</span>
+                                        )}
                                     </Button>
                                 </div>
-                                <InputGroup className="mt-2">
-                                    <Form.Control
-                                        type={showPassword ? "text" : "password"}
-                                        placeholder="Enter your password"
-                                        value={password}
-                                        onChange={(e) => setPassword(e.target.value)}
-                                        required
-                                        className="form-control-lg"
-                                    />
-                                    <Button
-                                        variant="outline-secondary"
-                                        onClick={() => setShowPassword(!showPassword)}
-                                        title={showPassword ? "Hide password" : "Show password"}
-                                    >
-                                        {showPassword ? <FaEyeSlash /> : <FaEye />}
-                                    </Button>
-                                </InputGroup>
-                            </Form.Group>
 
-                            <Button
-                                variant="primary"
-                                type="submit"
-                                className="w-100 btn-lg fw-semibold"
-                                disabled={loading}
-                            >
-                                {loading ? (
-                                    <>
-                                        <Spinner animation="border" size="sm" className="me-2" />
-                                        Sending OTP...
-                                    </>
-                                ) : (
-                                    <>
-                                        <FaLock className="me-2" />
-                                        Send OTP
-                                    </>
-                                )}
-                            </Button>
-                            <div className="text-center my-3 text-muted">OR</div>
-                                <Button
-                                    variant="outline-danger"
-                                    className="w-100 fw-bold d-flex align-items-center justify-content-center"
-                                    onClick={handleGoogleLogin}
-                                >
-                                    <FaGoogle className="me-2" /> Login with Google
+                                <Button variant="success" type="submit" className="w-100 rounded-pill py-2 fw-bold shadow-sm hover-scale" style={{ height: '45px' }}>
+                                    Verify & Login
                                 </Button>
-                        </Form>
-                    ) : (
-                        <Form onSubmit={handleVerify}>
-                            <div className="alert alert-success py-3 text-center mb-4 border-0">
-                                <FaCheckCircle className="me-2" />
-                                OTP sent to your email! Please check your inbox.
-                            </div>
-                            <Form.Group className="mb-3">
-                                <Form.Label className="fw-semibold">
-                                    <FaShieldAlt className="me-2 text-success" />
-                                    Enter OTP
-                                </Form.Label>
-                                <Form.Control
-                                    type="text"
-                                    placeholder="Enter 6-digit OTP"
-                                    value={otp}
-                                    onChange={(e) => setOtp(e.target.value)}
-                                    required
-                                    className="form-control-lg text-center"
-                                    maxLength="6"
-                                />
-                            </Form.Group>
+                            </Form>
+                        )}
 
-                            {/* --- RESEND OTP BUTTON --- */}
-                            <div className="d-flex justify-content-end mb-3">
-                                <Button
-                                    variant="link"
-                                    onClick={handleResendOtp}
-                                    disabled={!canResend || loading}
-                                    className="p-0 text-decoration-none small"
-                                    style={{ fontSize: '0.9rem' }}
-                                >
-                                    {canResend ? (
-                                        <>
-                                            <FaRedo className="me-1" /> Resend OTP
-                                        </>
-                                    ) : (
-                                        <span className="text-muted">Resend in {formatTime(timer)}</span>
-                                    )}
+                        {step === 1 && (
+                            <div className="text-center mt-3 pt-3 border-top border-light d-flex justify-content-center align-items-center">
+                                <span className="text-muted small me-2">Don't have an account?</span>
+                                <Button variant="link" onClick={() => navigate('/register')} className="p-0 fw-bold text-decoration-none">
+                                    Create Free Account
                                 </Button>
                             </div>
-                            {/* ------------------------- */}
-
-                            <Button variant="success" type="submit" className="w-100 btn-lg fw-semibold">
-                                <FaCheckCircle className="me-2" />
-                                Verify & Login
-                            </Button>
-                        </Form>
-                    )}
-
-                    {step === 1 && (
-                        <div className="text-center mt-4">
-                            <p className="text-muted mb-0">Don't have an account?</p>
-                            <Button variant="link" onClick={() => navigate('/register')} className="p-0">
-                                Register here
-                            </Button>
-                        </div>
-                    )}
-                </Card.Body>
-            </Card>
-        </Container>
+                        )}
+                    </Card.Body>
+                </Card>
+            </Container>
+        </div>
     );
 };
 

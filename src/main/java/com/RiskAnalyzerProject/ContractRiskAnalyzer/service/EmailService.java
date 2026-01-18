@@ -16,25 +16,25 @@ public class EmailService {
 
     private final String SENDER_EMAIL = "Contract Risk Analyzer <animeshj425@gmail.com>";
 
-    public void sendOtpEmail(String toEmail, String otp) {
+    private void sendEmail(String toEmail, String subject, String body) {
         SimpleMailMessage message = new SimpleMailMessage();
-
         message.setFrom(SENDER_EMAIL);
         message.setTo(toEmail);
-        message.setSubject("Your Contract Risk Analyzer OTP");
-        message.setText("Your verification code is: " + otp + "\n\nThis code expires in 1 minutes.");
-
+        message.setSubject(subject);
+        message.setText(body);
         mailSender.send(message);
     }
+    public void sendOtpEmail(String toEmail, String otp) {
+        String subject = "Your Contract Risk Analyzer OTP";
+        String body = "Your verification code is: " + otp + "\n\nThis code expires in 1 minute.";
+        sendEmail(toEmail, subject, body);
+    }
     public void sendResetPasswordEmail(String toEmail, String otp) {
-        SimpleMailMessage message = new SimpleMailMessage();
-        message.setFrom(SENDER_EMAIL);
-        message.setTo(toEmail);
-        message.setSubject("Reset Your Password - Contract Risk Analyzer");
-        message.setText("You requested a password reset." +
+        String subject = ("Reset Your Password - Contract Risk Analyzer");
+        String body =  "You requested a password reset." +
                         "\n\nYour reset code is: " + otp +
                          "\n\nThis code expires in 1 minutes. " +
-                         "If you did not request this, please ignore this email.");
-        mailSender.send(message);
+                         "If you did not request this, please ignore this email.";
+        sendEmail(toEmail, subject, body);
     }
 }

@@ -92,25 +92,28 @@ public class AuthService {
 
         return "OTP sent to email";
     }
-
-    public String verifyLoginOtp(String username, String otp) {
-        User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new ResourceNotFound("User not found with username: " + username));
+    private User validateOtp(String identifier, String otp, boolean isUsername) {
+        User user = isUsername ?
+                userRepository.findByUsername(identifier).orElseThrow(() -> new ResourceNotFound("User not found")) :
+                userRepository.findByEmail(identifier).orElseThrow(() -> new ResourceNotFound("User not found"));
 
         if (user.getOtpExpiryTime().isBefore(LocalDateTime.now())) {
-            throw new AppException("OTP has expired. Please login again to generate a new one.");
+            throw new AppException("OTP has expired.");
         }
-
         if (!user.getOtp().equals(otp)) {
-            throw new BadCredentialsException("Invalid OTP provided");
+            throw new BadCredentialsException("Invalid OTP");
         }
+        return user;
+    }
 
-        // Clear OTP after success
-        user.setOtp(null);
+    public String verifyLoginOtp(String username, String otp) {
+        User user = validateOtp(username, otp, true);
+        user.setOtp(null); // Clear OTP
         userRepository.save(user);
-
-        // Return the actual JWT Token
         return jwtUtil.generateToken(username);
+    }
+    public void verifyOtp(String email, String otp) {
+        validateOtp(email, otp, false);
     }
 
     public void logOutUser(HttpServletRequest request, HttpServletResponse response) {
@@ -161,16 +164,17 @@ public class AuthService {
         user.setOtp(null); // Clear used OTP
         userRepository.save(user);
     }
-    public void verifyOtp(String email, String otp) {
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new ResourceNotFound("User not found"));
+    public void deleteUserAccount(String username, String password) {
+        // 1. Find the user
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("User not found"));
 
-        if (user.getOtpExpiryTime().isBefore(LocalDateTime.now())) {
-            throw new RuntimeException("OTP has expired");
+        // 2. Check if the password matches
+        if (!passwordEncoder.matches(password, user.getPassword())) {
+            throw new RuntimeException("Incorrect password. Account not deleted.");
         }
 
-        if (!user.getOtp().equals(otp)) {
-            throw new RuntimeException("Invalid OTP");
-        }
+        // 3. Delete the user
+        userRepository.delete(user);
     }
 }
