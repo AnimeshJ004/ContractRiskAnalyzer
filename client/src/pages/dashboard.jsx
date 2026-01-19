@@ -289,7 +289,7 @@ const Dashboard = () => {
                                                 {remainingQuota?.isUnlimited ? <FaInfinity /> : remainingQuota?.remaining}
                                             </h2>
                                             <p className="text-white-50 small mt-2 mb-0">
-                                                <FaCalendarCheck className="me-1"/> Resets automatically every 24 hours.
+                                                <FaCalendarCheck className="me-1"/> After Exceeded your quota limit, you have to wait 1 hour to upload new Contracts.
                                             </p>
                                         </div>
                                         <div className="bg-white bg-opacity-10 p-3 rounded-circle text-warning">
