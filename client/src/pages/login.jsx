@@ -15,6 +15,15 @@ import {
     FaGoogle
 } from 'react-icons/fa';
 
+// --- GLASSMORPHISM STYLE ---
+const glassStyle = {
+    background: 'rgba(255, 255, 255, 0.85)', // Slightly higher opacity for cleaner look
+    backdropFilter: 'blur(12px)',
+    WebkitBackdropFilter: 'blur(12px)',
+    border: '1px solid rgba(255, 255, 255, 0.5)',
+    boxShadow: '0 8px 32px 0 rgba(31, 38, 135, 0.1)'
+};
+
 const Login = () => {
     const [step, setStep] = useState(1);
     const [username, setUsername] = useState('');
@@ -112,102 +121,130 @@ const Login = () => {
     };
 
     return (
-        <Container className="d-flex justify-content-center align-items-center fade-in" style={{ minHeight: '100vh' }}>
-            <Card style={{ width: '450px', maxWidth: '90%' }} className="shadow-lg border-0">
-                <Card.Body className="p-5">
-                    <div className="text-start mb-4">
-                        <Button variant="link" onClick={() => navigate('/')} className="p-0 text-decoration-none">
-                            <FaArrowLeft className="me-2" /> Back to Home
-                        </Button>
-                    </div>
+        <div className="d-flex justify-content-center align-items-center min-vh-100 fade-in"
+             style={{
+                 background: 'linear-gradient(135deg, #e0e7ff 0%, #f3f4f6 100%)',
+                 position: 'relative',
+                 overflow: 'hidden'
+             }}>
 
-                    <div className="text-center mb-4">
-                        <FaShieldAlt size={48} className="text-primary mb-3" />
-                        <h2 className="fw-bold text-primary">Contract Risk Analyzer</h2>
-                        <p className="text-muted">Secure Login Portal</p>
-                    </div>
+            {/* Background Blobs */}
+            <div style={{ position: 'absolute', top: '-10%', left: '-10%', width: '600px', height: '600px', background: '#6366f1', filter: 'blur(150px)', opacity: '0.2', borderRadius: '50%', zIndex: '0' }}></div>
+            <div style={{ position: 'absolute', bottom: '10%', right: '-10%', width: '500px', height: '500px', background: '#10b981', filter: 'blur(150px)', opacity: '0.2', borderRadius: '50%', zIndex: '0' }}></div>
 
-                    {step === 1 ? (
-                        <Form onSubmit={handleLogin}>
-                            <Form.Group className="mb-4">
-                                <Form.Label className="fw-semibold">
-                                    <FaUser className="me-2 text-primary" /> Username
-                                </Form.Label>
-                                <Form.Control
-                                    type="text"
-                                    placeholder="Enter your username"
-                                    value={username}
-                                    onChange={(e) => setUsername(e.target.value)}
-                                    required
-                                    className="form-control-lg"
-                                />
-                            </Form.Group>
+            <Container style={{ zIndex: 1, maxWidth: '420px' }}> {/* Reduced maxWidth for a slimmer look */}
+                <Card className="border-0 shadow-lg" style={glassStyle}>
+                    <Card.Body className="p-4"> {/* Reduced Padding (p-5 -> p-4) */}
+                        <div className="text-start mb-2"> {/* Reduced Margin */}
+                            <Button variant="link" onClick={() => navigate('/')} className="p-0 text-decoration-none text-muted fw-bold small">
+                                <FaArrowLeft className="me-2" /> Back
+                            </Button>
+                        </div>
 
-                            <Form.Group className="mb-4">
-                                <div className="d-flex justify-content-between align-items-center">
-                                    <Form.Label className="fw-semibold mb-0">
-                                        <FaLock className="me-2 text-primary" /> Password
-                                    </Form.Label>
-                                    <Button variant="link" className="p-0 text-decoration-none small" onClick={() => navigate('/forgot-password')}>
-                                        Forgot Password?
+                        <div className="text-center mb-3"> {/* Reduced Margin (mb-5 -> mb-3) */}
+                            <div className="bg-white p-2 rounded-circle shadow-sm d-inline-block mb-2 text-primary">
+                                <FaShieldAlt size={28} />
+                            </div>
+                            <h4 className="fw-bold text-dark mb-0">Welcome Back</h4>
+                        </div>
+
+                        {step === 1 ? (
+                            <Form onSubmit={handleLogin}>
+                                <Form.Group className="mb-3"> {/* Reduced Margin (mb-4 -> mb-3) */}
+                                    <Form.Label className="fw-semibold text-muted small text-uppercase ls-1 mb-1">Username</Form.Label>
+                                    <InputGroup>
+                                        <InputGroup.Text className="bg-white border-end-0"><FaUser className="text-primary opacity-50" /></InputGroup.Text>
+                                        <Form.Control
+                                            type="text"
+                                            placeholder="Username"
+                                            value={username}
+                                            onChange={(e) => setUsername(e.target.value)}
+                                            required
+                                            className="form-control border-start-0 ps-0 shadow-none"
+                                        />
+                                    </InputGroup>
+                                </Form.Group>
+
+                                <Form.Group className="mb-3"> {/* Reduced Margin (mb-4 -> mb-3) */}
+                                    <div className="d-flex justify-content-between align-items-center mb-1">
+                                        <Form.Label className="fw-semibold text-muted small text-uppercase ls-1 mb-0">Password</Form.Label>
+                                        <Button variant="link" className="p-0 text-decoration-none small fw-bold" onClick={() => navigate('/forgot-password')}>
+                                            Forgot?
+                                        </Button>
+                                    </div>
+                                    <InputGroup>
+                                        <InputGroup.Text className="bg-white border-end-0"><FaLock className="text-primary opacity-50" /></InputGroup.Text>
+                                        <Form.Control
+                                            type={showPassword ? "text" : "password"}
+                                            placeholder="Password"
+                                            value={password}
+                                            onChange={(e) => setPassword(e.target.value)}
+                                            required
+                                            className="form-control border-start-0 border-end-0 ps-0 shadow-none"
+                                        />
+                                        <Button variant="outline-secondary" className="border-start-0 bg-white text-muted" onClick={() => setShowPassword(!showPassword)}>
+                                            {showPassword ? <FaEyeSlash /> : <FaEye />}
+                                        </Button>
+                                    </InputGroup>
+                                </Form.Group>
+
+                                <Button variant="primary" type="submit" className="w-100 btn fw-bold mb-3 shadow-sm rounded-pill py-2" disabled={loading}>
+                                    {loading ? <><Spinner animation="border" size="sm" className="me-2" /> Sending...</> : <><FaLock className="me-2" /> Login</>}
+                                </Button>
+
+                                <div className="d-flex align-items-center my-3"> {/* Reduced Margin (my-4 -> my-3) */}
+                                    <hr className="flex-grow-1 opacity-25" />
+                                    <span className="px-3 text-muted small fw-bold">OR</span>
+                                    <hr className="flex-grow-1 opacity-25" />
+                                </div>
+
+                                <Button variant="white" className="w-100 fw-bold border shadow-sm d-flex align-items-center justify-content-center py-2 rounded-pill bg-white text-dark hover-lift" onClick={handleGoogleLogin}>
+                                    <FaGoogle className="me-2 text-danger" /> Google
+                                </Button>
+                            </Form>
+                        ) : (
+                            <Form onSubmit={handleVerify}>
+                                <div className="alert alert-success py-2 text-center mb-3 border-0 shadow-sm rounded bg-success-subtle text-success fw-bold small">
+                                    <FaCheckCircle className="me-2" /> Code Sent
+                                </div>
+                                <Form.Group className="mb-3">
+                                    <Form.Label className="fw-semibold text-muted small text-uppercase text-center w-100 d-block mb-2">Enter OTP</Form.Label>
+                                    <Form.Control
+                                        type="text"
+                                        placeholder="000000"
+                                        value={otp}
+                                        onChange={(e) => setOtp(e.target.value)}
+                                        required
+                                        className="form-control text-center fs-4 fw-bold letter-spacing-2 shadow-none border-primary"
+                                        maxLength="6"
+                                        style={{ letterSpacing: '6px' }}
+                                    />
+                                </Form.Group>
+
+                                <div className="d-flex justify-content-center mb-3">
+                                    <Button variant="link" onClick={handleResendOtp} disabled={!canResend || loading} className="p-0 text-decoration-none small fw-bold text-muted">
+                                        {canResend ? <span className="text-primary"><FaRedo className="me-1" /> Resend</span> : <span>Resend in {formatTime(timer)}</span>}
                                     </Button>
                                 </div>
-                                <InputGroup className="mt-2">
-                                    <Form.Control
-                                        type={showPassword ? "text" : "password"}
-                                        placeholder="Enter your password"
-                                        value={password}
-                                        onChange={(e) => setPassword(e.target.value)}
-                                        required
-                                        className="form-control-lg"
-                                    />
-                                    <Button variant="outline-secondary" onClick={() => setShowPassword(!showPassword)}>
-                                        {showPassword ? <FaEyeSlash /> : <FaEye />}
-                                    </Button>
-                                </InputGroup>
-                            </Form.Group>
 
-                            <Button variant="primary" type="submit" className="w-100 btn-lg fw-semibold" disabled={loading}>
-                                {loading ? <><Spinner animation="border" size="sm" className="me-2" /> Sending OTP...</> : <><FaLock className="me-2" /> Send OTP</>}
-                            </Button>
+                                <Button variant="success" type="submit" className="w-100 btn fw-bold rounded-pill shadow-sm py-2">
+                                    Verify
+                                </Button>
+                            </Form>
+                        )}
 
-                            <div className="text-center my-3 text-muted">OR</div>
-
-                            <Button variant="outline-danger" className="w-100 fw-bold d-flex align-items-center justify-content-center" onClick={handleGoogleLogin}>
-                                <FaGoogle className="me-2" /> Login with Google
-                            </Button>
-                        </Form>
-                    ) : (
-                        <Form onSubmit={handleVerify}>
-                            <div className="alert alert-success py-3 text-center mb-4 border-0">
-                                <FaCheckCircle className="me-2" /> OTP sent to your email!
-                            </div>
-                            <Form.Group className="mb-3">
-                                <Form.Label className="fw-semibold"><FaShieldAlt className="me-2 text-success" /> Enter OTP</Form.Label>
-                                <Form.Control type="text" placeholder="Enter 6-digit OTP" value={otp} onChange={(e) => setOtp(e.target.value)} required className="form-control-lg text-center" maxLength="6" />
-                            </Form.Group>
-
-                            <div className="d-flex justify-content-end mb-3">
-                                <Button variant="link" onClick={handleResendOtp} disabled={!canResend || loading} className="p-0 text-decoration-none small">
-                                    {canResend ? <><FaRedo className="me-1" /> Resend OTP</> : <span className="text-muted">Resend in {formatTime(timer)}</span>}
+                        {step === 1 && (
+                            <div className="text-center mt-3 pt-2 border-top">
+                                <span className="text-muted small">New here? </span>
+                                <Button variant="link" onClick={() => navigate('/register')} className="p-0 fw-bold text-primary text-decoration-none small">
+                                    Create Account
                                 </Button>
                             </div>
-
-                            <Button variant="success" type="submit" className="w-100 btn-lg fw-semibold">
-                                <FaCheckCircle className="me-2" /> Verify & Login
-                            </Button>
-                        </Form>
-                    )}
-
-                    {step === 1 && (
-                        <div className="text-center mt-4">
-                            <p className="text-muted mb-0">Don't have an account?</p>
-                            <Button variant="link" onClick={() => navigate('/register')} className="p-0">Register here</Button>
-                        </div>
-                    )}
-                </Card.Body>
-            </Card>
-        </Container>
+                        )}
+                    </Card.Body>
+                </Card>
+            </Container>
+        </div>
     );
 };
 

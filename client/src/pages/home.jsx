@@ -1,250 +1,198 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Container, Navbar, Button, Row, Col, Card, Form, InputGroup, Alert } from 'react-bootstrap';
-import { FaFileContract, FaUpload, FaSearch, FaEye, FaUserPlus, FaSignInAlt, FaRobot, FaShieldAlt } from 'react-icons/fa';
-import api from '../api/axiosConfig';
-import { toast } from 'react-toastify';
+import { Container, Navbar, Button, Row, Col, Card, Badge } from 'react-bootstrap';
+import {
+    FaShieldAlt,
+    FaRocket,
+    FaCode,
+    FaServer,
+    FaDatabase,
+    FaFileContract,
+    FaCheckCircle,
+    FaArrowRight,
+    FaBrain,
+    FaLock
+} from 'react-icons/fa';
+
+// --- GLASSMORPHISM STYLE OBJECT ---
+// We use this object to apply the "Frosted Glass" effect easily
+const glassStyle = {
+    background: 'rgba(255, 255, 255, 0.65)', // Semi-transparent white
+    backdropFilter: 'blur(12px)',           // The "Blur" effect
+    WebkitBackdropFilter: 'blur(12px)',     // Safari support
+    border: '1px solid rgba(255, 255, 255, 0.5)',
+    boxShadow: '0 8px 32px 0 rgba(31, 38, 135, 0.1)'
+};
 
 const Home = () => {
-    const [contracts, setContracts] = useState([]);
-    const [searchTerm, setSearchTerm] = useState('');
-    const [uploading, setUploading] = useState(false);
     const [isLoggedIn, setIsLoggedIn] = useState(false);
     const navigate = useNavigate();
 
     useEffect(() => {
         const token = localStorage.getItem('jwtToken');
         setIsLoggedIn(!!token);
-        if (token) {
-            fetchContracts();
-        }
     }, []);
 
-    const fetchContracts = async () => {
-        try {
-            const response = await api.get('/contracts');
-            setContracts(response.data);
-        } catch (error) {
-            console.error('Failed to fetch contracts:', error);
-        }
-    };
-
-    const handleUpload = async (e) => {
-        if (!isLoggedIn) {
-            toast.warning('Please login to upload contracts');
-            navigate('/login');
-            return;
-        }
-
-        const file = e.target.files[0];
-        if (!file) return;
-
-        const formData = new FormData();
-        formData.append("file", file);
-
-        setUploading(true);
-        try {
-            toast.info("Analyzing contract...");
-            await api.post('/contracts/upload', formData, {
-                headers: { 'Content-Type': 'multipart/form-data' }
-            });
-            toast.success("Upload Complete!");
-            fetchContracts();
-        } catch (error) {
-            // Improved Error Handling for Quota Limits
-            const msg = error.response?.data?.message || "Upload failed!";
-            toast.error(msg);
-        } finally {
-            setUploading(false);
-        }
-    };
-
-    const handleSearch = () => {
-        if (!isLoggedIn) {
-            toast.warning('Please login to search contracts');
-            navigate('/login');
-            return;
-        }
-    };
-
-    const filteredContracts = contracts.filter(contract =>
-        contract.filename.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        contract.id.toString().includes(searchTerm)
-    );
-
-    const getRiskBadge = (riskLevel = 'low') => {
-        const riskLevels = {
-            low: { text: 'Low Risk', variant: 'success', icon: '🟢' },
-            medium: { text: 'Medium Risk', variant: 'warning', icon: '🟡' },
-            high: { text: 'High Risk', variant: 'danger', icon: '🔴' }
-        };
-        return riskLevels[riskLevel] || riskLevels.low;
-    };
-
     return (
-        <div className="min-vh-100">
-            {/* Navigation */}
-            <Navbar bg="primary" variant="dark" className="px-4 py-3 shadow-sm">
+        <div className="min-vh-100 fade-in d-flex flex-column"
+             style={{
+                 background: 'linear-gradient(135deg, #e0e7ff 0%, #f3f4f6 100%)', // Subtle gradient bg
+                 position: 'relative',
+                 overflow: 'hidden'
+             }}>
+
+            {/* Background Blobs for depth */}
+            <div style={{ position: 'absolute', top: '-10%', left: '-10%', width: '600px', height: '600px', background: '#6366f1', filter: 'blur(150px)', opacity: '0.2', borderRadius: '50%', zIndex: '0' }}></div>
+            <div style={{ position: 'absolute', bottom: '10%', right: '-10%', width: '500px', height: '500px', background: '#10b981', filter: 'blur(150px)', opacity: '0.2', borderRadius: '50%', zIndex: '0' }}></div>
+
+            {/* --- 1. GLASSY NAVBAR --- */}
+            <Navbar className="px-4 py-3 sticky-top" style={{ ...glassStyle, zIndex: 10 }}>
                 <Container fluid>
-                    <Navbar.Brand className="fw-bold">
+                    <Navbar.Brand className="fw-bold d-flex align-items-center text-primary" style={{ fontSize: '1.5rem' }}>
                         <FaShieldAlt className="me-2" />
-                        Contract Risk Analyzer
+                        Contract<span className="text-dark">Analyzer</span>
                     </Navbar.Brand>
-                    <div className="d-flex gap-2">
+                    <div className="d-flex gap-3">
                         {!isLoggedIn ? (
                             <>
-                                <Button variant="outline-light" onClick={() => navigate('/register')}>
-                                    <FaUserPlus className="me-1" />
-                                    Register
-                                </Button>
-                                <Button variant="light" onClick={() => navigate('/login')}>
-                                    <FaSignInAlt className="me-1" />
+                                <Button variant="outline-primary" className="px-4 fw-bold" onClick={() => navigate('/login')} style={{ borderRadius: '50px' }}>
                                     Login
+                                </Button>
+                                <Button variant="primary" className="px-4 fw-bold" onClick={() => navigate('/register')} style={{ borderRadius: '50px' }}>
+                                    Get Started
                                 </Button>
                             </>
                         ) : (
-                            <Button variant="outline-light" onClick={() => navigate('/dashboard')}>
-                                <FaFileContract className="me-1" />
-                                Dashboard
+                            <Button variant="primary" className="px-4 fw-bold shadow-lg" onClick={() => navigate('/dashboard')} style={{ borderRadius: '50px' }}>
+                                Go to Dashboard <FaArrowRight className="ms-2" />
                             </Button>
                         )}
                     </div>
                 </Container>
             </Navbar>
 
-            {/* Hero Section */}
-            <div className="bg-gradient-primary text-white py-5">
-                <Container className="text-center">
-                    <FaRobot size={64} className="mb-4 text-primary" />
-                    <h1 className="display-4 fw-bold mb-3">AI-Powered Contract Risk Analysis</h1>
-                    <p className="lead mb-4">Upload your contracts and let our AI analyze potential risks, liabilities, and compliance issues</p>
-                    <div className="d-flex justify-content-center gap-3 flex-wrap">
-                        <Button
-                            size="lg"
-                            variant="light"
-                            className="d-flex align-items-center"
-                            onClick={() => isLoggedIn ? document.getElementById('file-upload').click() : navigate('/login')}
-                        >
-                            <FaUpload className="me-2" />
-                            Upload Contract
-                        </Button>
-                        <Button
-                            size="lg"
-                            variant="outline-light"
-                            onClick={() => isLoggedIn ? navigate('/dashboard') : navigate('/login')}
-                        >
-                            <FaEye className="me-2" />
-                            View Contracts
-                        </Button>
+            {/* --- 2. HERO SECTION --- */}
+            <Container className="flex-grow-1 d-flex align-items-center justify-content-center py-5" style={{ position: 'relative', zIndex: 1 }}>
+                <Row className="align-items-center w-100">
+                    <Col lg={6} className="mb-5 mb-lg-0">
+                        <Badge bg="primary" className="mb-3 px-3 py-2 rounded-pill fw-normal" style={{ letterSpacing: '1px' }}>
+                            <FaBrain className="me-2" /> AI-POWERED LEGAL TECH
+                        </Badge>
+                        <h1 className="display-3 fw-bold mb-4 text-dark lh-sm">
+                            Smarter Contracts.<br />
+                            <span className="text-primary" style={{ background: 'linear-gradient(90deg, #4f46e5, #06b6d4)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+                                Zero Risk.
+                            </span>
+                        </h1>
+                        <p className="lead text-muted mb-5 pe-lg-5" style={{ fontSize: '1.2rem' }}>
+                            Don't sign blindly. Our advanced AI scans your contracts, identifies hidden risks, and translates legal jargon into plain English.
+                        </p>
+                        <div className="d-flex gap-3">
+                            <Button size="lg" variant="primary" className="px-5 py-3 shadow-lg fw-bold rounded-pill" onClick={() => navigate(isLoggedIn ? '/dashboard' : '/register')}>
+                                Analyze My Contract
+                            </Button>
+                            <Button size="lg" variant="outline-dark" className="px-4 py-3 fw-bold rounded-pill" onClick={() => document.getElementById('how-it-works').scrollIntoView({ behavior: 'smooth' })}>
+                                How it Works
+                            </Button>
+                        </div>
+                    </Col>
+
+                    <Col lg={6}>
+                        {/* Glassy Hero Card */}
+                        <Card className="border-0 p-4" style={{ ...glassStyle, transform: 'rotate(-2deg)' }}>
+                            <Card.Body>
+                                <div className="d-flex align-items-center mb-4">
+                                    <div className="bg-success text-white p-3 rounded-circle me-3">
+                                        <FaCheckCircle size={24} />
+                                    </div>
+                                    <div>
+                                        <h5 className="fw-bold mb-0">Analysis Complete</h5>
+                                        <small className="text-muted">Just now</small>
+                                    </div>
+                                </div>
+                                <div className="bg-white p-3 rounded mb-3 border shadow-sm opacity-75">
+                                    <div className="d-flex justify-content-between text-muted small mb-2">
+                                        <span>Risk Score</span>
+                                        <span className="text-success fw-bold">Low Risk (92/100)</span>
+                                    </div>
+                                    <div className="progress" style={{ height: '6px' }}>
+                                        <div className="progress-bar bg-success" style={{ width: '92%' }}></div>
+                                    </div>
+                                </div>
+                                <div className="bg-white p-3 rounded border shadow-sm opacity-75">
+                                    <h6 className="fw-bold text-danger mb-2"><FaShieldAlt className="me-2"/>Critical Flag Found</h6>
+                                    <p className="small text-muted mb-0">"Clause 4.2 contains an unlimited liability waiver which poses significant financial risk."</p>
+                                </div>
+                            </Card.Body>
+                        </Card>
+                    </Col>
+                </Row>
+            </Container>
+
+            {/* --- 3. HOW IT WORKS --- */}
+            <div id="how-it-works" className="py-5">
+                <Container>
+                    <div className="text-center mb-5">
+                        <h6 className="text-primary fw-bold text-uppercase ls-2">Workflow</h6>
+                        <h2 className="fw-bold">How ContractAnalyzer Works</h2>
                     </div>
-                    <input
-                        id="file-upload"
-                        type="file"
-                        onChange={handleUpload}
-                        accept="application/pdf"
-                        style={{ display: 'none' }}
-                    />
+                    <Row className="g-4">
+                        {[
+                            { icon: <FaFileContract />, title: "1. Upload PDF", desc: "Drag & drop your contract file. We support scanned documents via OCR." },
+                            { icon: <FaBrain />, title: "2. AI Processing", desc: "Our Gemini AI engine reads every clause, comparing it against legal standards." },
+                            { icon: <FaShieldAlt />, title: "3. Risk Report", desc: "Get an instant summary, risk score, and list of missing clauses." }
+                        ].map((step, idx) => (
+                            <Col md={4} key={idx}>
+                                <Card className="h-100 text-center p-4 border-0 shadow-sm" style={glassStyle}>
+                                    <div className="mx-auto bg-white text-primary rounded-circle d-flex align-items-center justify-content-center mb-3 shadow-sm" style={{ width: '70px', height: '70px', fontSize: '1.75rem' }}>
+                                        {step.icon}
+                                    </div>
+                                    <h5 className="fw-bold">{step.title}</h5>
+                                    <p className="text-muted">{step.desc}</p>
+                                </Card>
+                            </Col>
+                        ))}
+                    </Row>
                 </Container>
             </div>
 
-            <Container className="py-5">
-                {/* Search Section */}
-                {isLoggedIn && (
-                    <Card className="mb-5 border-0 shadow-sm">
-                        <Card.Body className="p-4">
-                            <Row className="align-items-center">
-                                <Col md={8}>
-                                    <InputGroup size="lg">
-                                        <InputGroup.Text>
-                                            <FaSearch />
-                                        </InputGroup.Text>
-                                        <Form.Control
-                                            type="text"
-                                            placeholder="Search contracts by name or ID..."
-                                            value={searchTerm}
-                                            onChange={(e) => setSearchTerm(e.target.value)}
-                                        />
-                                    </InputGroup>
-                                </Col>
-                                <Col md={4}>
-                                    <Button variant="primary" size="lg" onClick={handleSearch} className="w-100">
-                                        <FaSearch className="me-2" />
-                                        Search
-                                    </Button>
-                                </Col>
-                            </Row>
-                        </Card.Body>
-                    </Card>
-                )}
+            {/* --- 4. TECH STACK INFO --- */}
+            <div className="py-5" style={{ background: 'rgba(255,255,255,0.4)' }}>
+                <Container>
+                    <div className="text-center mb-5">
+                        <h6 className="text-primary fw-bold text-uppercase">Under the Hood</h6>
+                        <h2 className="fw-bold">Built with Modern Tech</h2>
+                    </div>
+                    <Row xs={2} md={4} className="g-4 text-center">
+                        {[
+                            { icon: <FaServer />, title: "Spring Boot", text: "Robust Java Backend" },
+                            { icon: <FaCode />, title: "React + Vite", text: "Fast Frontend" },
+                            { icon: <FaDatabase />, title: "MongoDB", text: "Scalable Database" },
+                            { icon: <FaRocket />, title: "Docker", text: "Containerized" },
+                        ].map((tech, idx) => (
+                            <Col key={idx}>
+                                <div className="p-3 rounded border bg-white shadow-sm h-100">
+                                    <div className="text-primary mb-3" style={{ fontSize: '2rem' }}>{tech.icon}</div>
+                                    <h5 className="fw-bold">{tech.title}</h5>
+                                    <small className="text-muted">{tech.text}</small>
+                                </div>
+                            </Col>
+                        ))}
+                    </Row>
+                </Container>
+            </div>
 
-                {/* Contracts Section */}
-                {isLoggedIn ? (
-                    <>
-                        <div className="d-flex justify-content-between align-items-center mb-4">
-                            <h3 className="fw-bold mb-0">Your Contracts</h3>
-                            <span className="badge bg-secondary fs-6">{filteredContracts.length} contracts</span>
-                        </div>
+            {/* --- 5. FOOTER --- */}
+            <footer className="py-4 text-center text-muted small mt-5" style={{ borderTop: '1px solid rgba(0,0,0,0.05)' }}>
+                <Container>
+                    <p className="mb-0">
+                        &copy; {new Date().getFullYear()} Contract Risk Analyzer.
+                        <span className="mx-2">|</span>
+                        Secure. Private. Intelligent.
+                    </p>
+                </Container>
+            </footer>
 
-                        {filteredContracts.length === 0 ? (
-                            <Card className="text-center py-5 border-dashed">
-                                <Card.Body>
-                                    <FaFileContract size={64} className="text-muted mb-3" />
-                                    <h5 className="text-muted">No contracts found</h5>
-                                    <p className="text-muted">Upload your first contract to get started with risk analysis!</p>
-                                </Card.Body>
-                            </Card>
-                        ) : (
-                            <Row xs={1} md={2} lg={3} xl={4} className="g-4">
-                                {filteredContracts.map((contract) => {
-                                    const riskBadge = getRiskBadge(contract.riskLevel);
-                                    return (
-                                        <Col key={contract.id}>
-                                            <Card className="h-100 border-0 shadow-sm">
-                                                <Card.Body className="d-flex flex-column">
-                                                    <div className="d-flex justify-content-between align-items-start mb-3">
-                                                        <FaFileContract size={24} className="text-primary" />
-                                                        <span className={`badge bg-${riskBadge.variant} d-flex align-items-center`}>
-                                                            {riskBadge.icon}
-                                                            <span className="ms-1">{riskBadge.text}</span>
-                                                        </span>
-                                                    </div>
-
-                                                    <Card.Title className="text-truncate fw-semibold mb-2" title={contract.filename}>
-                                                        {contract.filename}
-                                                    </Card.Title>
-
-                                                    <Card.Text className="text-muted small mb-3">
-                                                        ID: {contract.id} • Uploaded: {new Date(contract.uploadDate).toLocaleDateString()}
-                                                    </Card.Text>
-
-                                                    <Button
-                                                        variant="primary"
-                                                        className="w-100 mt-auto d-flex align-items-center justify-content-center"
-                                                        onClick={() => navigate(`/chat/${contract.id}`)}
-                                                    >
-                                                        <FaRobot className="me-2" />
-                                                        Chat with AI
-                                                    </Button>
-                                                </Card.Body>
-                                            </Card>
-                                        </Col>
-                                    );
-                                })}
-                            </Row>
-                        )}
-                    </>
-                ) : (
-                    <Alert variant="info" className="text-center py-5">
-                        <FaSignInAlt size={48} className="mb-3 text-primary" />
-                        <h4>Please Login to Access Your Contracts</h4>
-                        <p className="mb-3">Login to upload contracts, view risk analysis, and chat with our AI assistant.</p>
-                        <Button variant="primary" size="lg" onClick={() => navigate('/login')}>
-                            <FaSignInAlt className="me-2" />
-                            Login Now
-                        </Button>
-                    </Alert>
-                )}
-            </Container>
         </div>
     );
 };

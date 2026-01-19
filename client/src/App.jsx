@@ -2,15 +2,16 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
-import home from './pages/home';
-import login from './pages/login';
-import register from './pages/register';
-import dashboard from './pages/dashboard';
-import chat from './pages/chat';
-import contractDetails from './pages/contractDetails';
-import settings from './pages/settings';
-import forgotPassword from './pages/forgotPassword';
-import completeRegistration from './pages/completeRegistration';
+// --- FIX: Change these imports to match your new lowercase filenames ---
+import Home from './pages/home';        // changed from './pages/Home'
+import Login from './pages/login';      // changed from './pages/Login'
+import Register from './pages/register';// changed from './pages/Register'
+import Dashboard from './pages/dashboard';
+import Chat from './pages/chat';
+import ContractDetails from './pages/contractDetails';
+import Settings from './pages/settings';
+import ForgotPassword from './pages/forgotPassword';
+import CompleteRegistration from './pages/completeRegistration';
 
 const PrivateRoute = ({ children }) => {
     const token = localStorage.getItem('jwtToken');
@@ -22,24 +23,26 @@ function App() {
     <Router>
       <ToastContainer position="top-center" autoClose={3000} />
       <Routes>
-        <Route path="/" element={<home />} />
-        <Route path="/login" element={<login />} />
-        <Route path="/register" element={<register />} />
-        <Route path="/forgot-password" element={<forgotPassword />} />
+        <Route path="/" element={<Home />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+
+        {/* Protected Routes */}
         <Route
             path="/dashboard"
             element={
                 <PrivateRoute>
-                    <dashboard />
+                    <Dashboard />
                 </PrivateRoute>
             }
         />
-        <Route path="/complete-registration" element={<completeRegistration />} />
+        <Route path="/complete-registration" element={<CompleteRegistration />} />
         <Route
             path="/chat/:contractId"
             element={
                 <PrivateRoute>
-                    <chat />
+                    <Chat />
                 </PrivateRoute>
             }
         />
@@ -47,7 +50,7 @@ function App() {
             path="/contracts/:id"
             element={
                 <PrivateRoute>
-                    <contractDetails />
+                    <ContractDetails />
                 </PrivateRoute>
             }
         />
@@ -55,7 +58,7 @@ function App() {
             path="/settings"
             element={
                 <PrivateRoute>
-                    <settings />
+                    <Settings />
                 </PrivateRoute>
             }
         />

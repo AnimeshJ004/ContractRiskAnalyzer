@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import api from '../api/axiosConfig';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import { Container, Card, Button, Modal, Form, Alert, InputGroup } from 'react-bootstrap';
+import { Container, Card, Button, Modal, Form, Alert, InputGroup, Row, Col } from 'react-bootstrap';
 import {
     FaUser,
     FaEnvelope,
@@ -11,8 +11,18 @@ import {
     FaTrash,
     FaExclamationTriangle,
     FaEye,
-    FaEyeSlash
+    FaEyeSlash,
+    FaCog
 } from 'react-icons/fa';
+
+// --- GLASSMORPHISM STYLE ---
+const glassStyle = {
+    background: 'rgba(255, 255, 255, 0.85)',
+    backdropFilter: 'blur(12px)',
+    WebkitBackdropFilter: 'blur(12px)',
+    border: '1px solid rgba(255, 255, 255, 0.5)',
+    boxShadow: '0 8px 32px 0 rgba(31, 38, 135, 0.1)'
+};
 
 const Settings = () => {
     // --- STATE MANAGEMENT ---
@@ -57,7 +67,6 @@ const Settings = () => {
                toast.success("Account deleted successfully. Goodbye!");
                navigate('/');
            } catch (error) {
-               // --- FIX IS HERE ---
                // Your interceptor already extracted the message into error.message
                // Do NOT check error.response here.
                const msg = error.message || "Failed to delete account.";
@@ -69,124 +78,165 @@ const Settings = () => {
        };
 
     return (
-        <Container className="py-5 fade-in" style={{ maxWidth: '800px' }}>
+        <div className="min-vh-100 fade-in py-5"
+             style={{
+                 background: 'linear-gradient(135deg, #e0e7ff 0%, #f3f4f6 100%)',
+                 position: 'relative',
+                 overflow: 'hidden'
+             }}>
 
-            {/* HEADER */}
-            <div className="mb-4">
-                <Button variant="link" onClick={() => navigate('/dashboard')} className="p-0 text-decoration-none mb-2">
-                    <FaArrowLeft className="me-2" /> Back to Dashboard
-                </Button>
-                <h2 className="fw-bold"><FaUser className="me-2 text-primary"/> Account Settings</h2>
-            </div>
+            {/* Background Blobs */}
+            <div style={{ position: 'absolute', top: '-10%', left: '-10%', width: '600px', height: '600px', background: '#6366f1', filter: 'blur(150px)', opacity: '0.15', borderRadius: '50%', zIndex: '0' }}></div>
+            <div style={{ position: 'absolute', bottom: '10%', right: '-10%', width: '500px', height: '500px', background: '#10b981', filter: 'blur(150px)', opacity: '0.15', borderRadius: '50%', zIndex: '0' }}></div>
 
-            {/* PROFILE CARD */}
-            <Card className="shadow-sm border-0 mb-5">
-                <Card.Body className="p-4">
-                    <h5 className="fw-bold mb-4 text-muted border-bottom pb-2">Profile Information</h5>
+            <Container style={{ zIndex: 1, position: 'relative', maxWidth: '800px' }}>
 
-                    <Form.Group className="mb-3">
-                        <Form.Label className="fw-semibold"><FaUser className="me-2 text-secondary"/> Username</Form.Label>
-                        <Form.Control type="text" value={user.username} disabled className="bg-light" />
-                    </Form.Group>
-
-                    <Form.Group className="mb-3">
-                        <Form.Label className="fw-semibold"><FaEnvelope className="me-2 text-secondary"/> Email</Form.Label>
-                        <Form.Control type="text" value={user.email} disabled className="bg-light" />
-                    </Form.Group>
-
-                    <Form.Group className="mb-1">
-                        <Form.Label className="fw-semibold"><FaShieldAlt className="me-2 text-secondary"/> Account Role</Form.Label>
-                        <Form.Control type="text" value={user.role} disabled className="bg-light" />
-                    </Form.Group>
-                </Card.Body>
-            </Card>
-
-            {/* DANGER ZONE CARD */}
-            <Card className="shadow-sm border-danger">
-                <Card.Header className="bg-danger text-white fw-bold">
-                    <FaExclamationTriangle className="me-2" /> Danger Zone
-                </Card.Header>
-                <Card.Body className="p-4">
-                    <div className="d-flex justify-content-between align-items-center flex-wrap gap-3">
-                        <div>
-                            <h5 className="fw-bold text-danger">Delete Account</h5>
-                            <p className="text-muted mb-0 small">
-                                Once you delete your account, there is no going back. Please be certain.
-                            </p>
+                {/* HEADER */}
+                <div className="mb-4">
+                    <Button variant="link" onClick={() => navigate('/dashboard')} className="p-0 text-decoration-none mb-3 fw-bold text-muted small">
+                        <FaArrowLeft className="me-2" /> Back to Dashboard
+                    </Button>
+                    <div className="d-flex align-items-center">
+                        <div className="bg-white p-3 rounded-circle shadow-sm me-3 text-primary">
+                            <FaCog size={28} />
                         </div>
-                        <Button variant="outline-danger" onClick={() => setShowDeleteModal(true)}>
-                            Delete Account
-                        </Button>
+                        <div>
+                            <h2 className="fw-bold text-dark mb-0">Account Settings</h2>
+                            <p className="text-muted mb-0">Manage your profile and security preferences</p>
+                        </div>
                     </div>
-                </Card.Body>
-            </Card>
+                </div>
 
-            {/* DELETE CONFIRMATION MODAL */}
-            <Modal show={showDeleteModal} onHide={() => setShowDeleteModal(false)} centered backdrop="static">
-                <Modal.Header closeButton>
-                    <Modal.Title className="text-danger fw-bold">
-                        <FaTrash className="me-2" /> Confirm Account Deletion
-                    </Modal.Title>
-                </Modal.Header>
-                <Modal.Body>
-                    <Alert variant="warning" className="small">
-                        All your uploaded contracts, chats, and personal data will be permanently removed.
-                    </Alert>
+                {/* PROFILE CARD */}
+                <Card className="border-0 mb-5" style={glassStyle}>
+                    <Card.Body className="p-4">
+                        <h5 className="fw-bold mb-4 text-primary pb-2 border-bottom border-secondary border-opacity-10">
+                            Profile Information
+                        </h5>
 
-                    <Form.Group className="mb-3">
-                        <Form.Label className="fw-bold">Enter Password to Confirm</Form.Label>
-                        <InputGroup>
+                        <Form.Group className="mb-4">
+                            <Form.Label className="fw-semibold text-muted small text-uppercase ls-1"><FaUser className="me-2 text-primary opacity-75"/> Username</Form.Label>
                             <Form.Control
-                                type={showPassword ? "text" : "password"}
-                                placeholder="Your password"
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
+                                type="text"
+                                value={user.username}
+                                disabled
+                                className="bg-white border-0 shadow-sm py-2 px-3 fw-bold text-dark"
                             />
-                            <Button
-                                variant="outline-secondary"
-                                onClick={() => setShowPassword(!showPassword)}
-                                title={showPassword ? "Hide password" : "Show password"}
-                            >
-                                {showPassword ? <FaEyeSlash /> : <FaEye />}
+                        </Form.Group>
+
+                        <Form.Group className="mb-4">
+                            <Form.Label className="fw-semibold text-muted small text-uppercase ls-1"><FaEnvelope className="me-2 text-primary opacity-75"/> Email Address</Form.Label>
+                            <Form.Control
+                                type="text"
+                                value={user.email}
+                                disabled
+                                className="bg-white border-0 shadow-sm py-2 px-3 fw-bold text-dark"
+                            />
+                        </Form.Group>
+
+                        <Form.Group className="mb-2">
+                            <Form.Label className="fw-semibold text-muted small text-uppercase ls-1"><FaShieldAlt className="me-2 text-primary opacity-75"/> Account Role</Form.Label>
+                            <Form.Control
+                                type="text"
+                                value={user.role}
+                                disabled
+                                className="bg-white border-0 shadow-sm py-2 px-3 fw-bold text-dark"
+                            />
+                        </Form.Group>
+                    </Card.Body>
+                </Card>
+
+                {/* DANGER ZONE CARD */}
+                <Card className="border-danger shadow-sm" style={{ background: 'rgba(255, 235, 238, 0.6)', backdropFilter: 'blur(10px)' }}>
+                    <Card.Header className="bg-danger text-white fw-bold border-0 d-flex align-items-center">
+                        <FaExclamationTriangle className="me-2" /> Danger Zone
+                    </Card.Header>
+                    <Card.Body className="p-4">
+                        <div className="d-flex justify-content-between align-items-center flex-wrap gap-3">
+                            <div>
+                                <h5 className="fw-bold text-danger">Delete Account</h5>
+                                <p className="text-danger-emphasis mb-0 small" style={{ maxWidth: '450px' }}>
+                                    Once you delete your account, there is no going back. All your data will be permanently removed. Please be certain.
+                                </p>
+                            </div>
+                            <Button variant="outline-danger" className="fw-bold px-4 rounded-pill" onClick={() => setShowDeleteModal(true)}>
+                                Delete Account
                             </Button>
-                        </InputGroup>
-                    </Form.Group>
+                        </div>
+                    </Card.Body>
+                </Card>
 
-                    {/* FORGOT PASSWORD LINK */}
-                    <div className="text-end">
-                        <Button
-                            variant="link"
-                            className="p-0 text-decoration-none small"
-                            onClick={() => {
-                                setShowDeleteModal(false);
-                                navigate('/forgot-password', {
-                                    state: {
-                                        returnPath: '/settings',
-                                        username: user.username,
-                                        email: user.email
-                                    }
-                                });
-                            }}
-                        >
-                            Forgot Password?
+                {/* DELETE CONFIRMATION MODAL */}
+                <Modal show={showDeleteModal} onHide={() => setShowDeleteModal(false)} centered backdrop="static">
+                    <Modal.Header closeButton className="border-0 pb-0">
+                        <Modal.Title className="text-danger fw-bold">
+                            <FaTrash className="me-2" /> Confirm Account Deletion
+                        </Modal.Title>
+                    </Modal.Header>
+                    <Modal.Body className="pt-2">
+                        <Alert variant="warning" className="small border-0 shadow-sm mb-4">
+                            <FaExclamationTriangle className="me-2" />
+                            All your uploaded contracts, chats, and personal data will be permanently removed.
+                        </Alert>
+
+                        <Form.Group className="mb-3">
+                            <Form.Label className="fw-bold text-muted small text-uppercase">Enter Password to Confirm</Form.Label>
+                            <InputGroup>
+                                <Form.Control
+                                    type={showPassword ? "text" : "password"}
+                                    placeholder="Your password"
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                    className="border-end-0 shadow-none"
+                                />
+                                <Button
+                                    variant="outline-secondary"
+                                    className="border-start-0 bg-white"
+                                    onClick={() => setShowPassword(!showPassword)}
+                                    title={showPassword ? "Hide password" : "Show password"}
+                                >
+                                    {showPassword ? <FaEyeSlash /> : <FaEye />}
+                                </Button>
+                            </InputGroup>
+                        </Form.Group>
+
+                        {/* FORGOT PASSWORD LINK */}
+                        <div className="text-end">
+                            <Button
+                                variant="link"
+                                className="p-0 text-decoration-none small text-primary fw-bold"
+                                onClick={() => {
+                                    setShowDeleteModal(false);
+                                    navigate('/forgot-password', {
+                                        state: {
+                                            returnPath: '/settings',
+                                            username: user.username,
+                                            email: user.email
+                                        }
+                                    });
+                                }}
+                            >
+                                Forgot Password?
+                            </Button>
+                        </div>
+
+                    </Modal.Body>
+                    <Modal.Footer className="border-0 pt-0">
+                        <Button variant="light" onClick={() => setShowDeleteModal(false)} className="rounded-pill px-4 fw-bold">
+                            Cancel
                         </Button>
-                    </div>
-
-                </Modal.Body>
-                <Modal.Footer>
-                    <Button variant="secondary" onClick={() => setShowDeleteModal(false)}>
-                        Cancel
-                    </Button>
-                    <Button
-                        variant="danger"
-                        onClick={handleDeleteAccount}
-                        disabled={loading || !password}
-                    >
-                        {loading ? "Deleting..." : "Permanently Delete Account"}
-                    </Button>
-                </Modal.Footer>
-            </Modal>
-        </Container>
+                        <Button
+                            variant="danger"
+                            onClick={handleDeleteAccount}
+                            disabled={loading || !password}
+                            className="rounded-pill px-4 fw-bold shadow-sm"
+                        >
+                            {loading ? "Deleting..." : "Permanently Delete Account"}
+                        </Button>
+                    </Modal.Footer>
+                </Modal>
+            </Container>
+        </div>
     );
 };
 

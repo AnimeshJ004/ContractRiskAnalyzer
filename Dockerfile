@@ -12,7 +12,6 @@ RUN npm run build
 
 
 # --- Stage 2: Build Spring Boot Backend ---
-# CHANGE 1: Use a supported maven image
 FROM maven:3.8.5-openjdk-17 AS backend-builder
 WORKDIR /app
 
@@ -31,12 +30,21 @@ RUN mvn clean package -DskipTests
 
 
 # --- Stage 3: Run the Application ---
-# CHANGE 2: Use Eclipse Temurin instead of the deprecated 'openjdk'
-FROM eclipse-temurin:17-jdk-alpine
+# FIX 1: Use a standard Debian-based image (Jammy) instead of Alpine.
+# This ensures better compatibility with the Tesseract native libraries.
+FROM eclipse-temurin:17-jdk-jammy
 WORKDIR /app
+
+# FIX 2: Install the native Tesseract OCR engine
+RUN apt-get update && \
+    apt-get install -y tesseract-ocr && \
+    apt-get clean
 
 # Copy the JAR from the build stage
 COPY --from=backend-builder /app/target/*.jar app.jar
+
+# FIX 3: Copy the 'tessdata' folder so the Java code can find the models
+COPY tessdata ./tessdata
 
 EXPOSE 8080
 

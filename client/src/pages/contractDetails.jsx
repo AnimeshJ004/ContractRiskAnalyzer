@@ -3,7 +3,16 @@ import { useParams, useNavigate } from 'react-router-dom';
 import api from '../api/axiosConfig';
 import { Container, Button, Card, Row, Col, Badge, Spinner, Accordion } from 'react-bootstrap';
 import { FaArrowLeft, FaRobot, FaExclamationTriangle, FaCheckCircle, FaFileAlt, FaListUl, FaDownload } from 'react-icons/fa';
-import {toast} from 'react-toastify';
+import { toast } from 'react-toastify';
+
+// --- GLASSMORPHISM STYLE ---
+const glassStyle = {
+    background: 'rgba(255, 255, 255, 0.85)',
+    backdropFilter: 'blur(12px)',
+    WebkitBackdropFilter: 'blur(12px)',
+    border: '1px solid rgba(255, 255, 255, 0.5)',
+    boxShadow: '0 8px 32px 0 rgba(31, 38, 135, 0.1)'
+};
 
 const ContractDetails = () => {
     const { id } = useParams();
@@ -32,9 +41,6 @@ const ContractDetails = () => {
         };
         fetchContract();
     }, [id]);
-
-    if (loading) return <div className="text-center mt-5"><Spinner animation="border" variant="primary" /></div>;
-    if (!contract) return <div className="text-center mt-5">Contract not found</div>;
 
     const getVariant = (level) => {
         if (!level) return 'secondary';
@@ -66,119 +72,172 @@ const ContractDetails = () => {
         }
     };
 
+    if (loading) return (
+        <div className="d-flex justify-content-center align-items-center min-vh-100" style={{ background: '#f3f4f6' }}>
+            <Spinner animation="border" variant="primary" />
+        </div>
+    );
+
+    if (!contract) return (
+        <div className="text-center mt-5 text-muted">
+            <h3>Contract not found</h3>
+            <Button variant="link" onClick={() => navigate('/dashboard')}>Go Back</Button>
+        </div>
+    );
+
     return (
-        <Container className="py-5 fade-in">
-            <div className="d-flex justify-content-between align-items-center mb-4">
-                <Button variant="outline-secondary" onClick={() => navigate('/dashboard')}>
-                    <FaArrowLeft className="me-2" /> Back to Dashboard
-                </Button>
-                <div className="d-flex gap-2">
-                    <Button variant="success" onClick={handleDownloadAnalysis}>
-                        <FaDownload className="me-2" /> Download Report (PDF)
+        <div className="min-vh-100 fade-in py-5"
+             style={{
+                 background: 'linear-gradient(135deg, #e0e7ff 0%, #f3f4f6 100%)',
+                 position: 'relative',
+                 overflowX: 'hidden' // Prevent horizontal scroll
+             }}>
+
+            {/* Background Blobs */}
+            <div style={{ position: 'absolute', top: '-10%', left: '-10%', width: '600px', height: '600px', background: '#6366f1', filter: 'blur(150px)', opacity: '0.15', borderRadius: '50%', zIndex: '0' }}></div>
+            <div style={{ position: 'absolute', bottom: '10%', right: '-10%', width: '500px', height: '500px', background: '#10b981', filter: 'blur(150px)', opacity: '0.15', borderRadius: '50%', zIndex: '0' }}></div>
+
+            <Container style={{ position: 'relative', zIndex: 1 }}>
+
+                {/* --- HEADER --- */}
+                <div className="d-flex justify-content-between align-items-center mb-4">
+                    <Button variant="white" className="shadow-sm rounded-pill px-3 fw-bold text-muted border" onClick={() => navigate('/dashboard')}>
+                        <FaArrowLeft className="me-2" /> Back to Dashboard
                     </Button>
-                    <Button variant="primary" onClick={() => navigate(`/chat/${id}`)}>
-                        <FaRobot className="me-2" /> Chat with Contract
-                    </Button>
+                    <div className="d-flex gap-2">
+                        <Button variant="success" className="shadow-sm rounded-pill fw-bold" onClick={handleDownloadAnalysis}>
+                            <FaDownload className="me-2" /> Download Report
+                        </Button>
+                        <Button variant="primary" className="shadow-sm rounded-pill fw-bold" onClick={() => navigate(`/chat/${id}`)}>
+                            <FaRobot className="me-2" /> Chat with Contract
+                        </Button>
+                    </div>
                 </div>
-            </div>
 
-            <Card className="shadow-sm border-0 mb-4 bg-white">
-                <Card.Body className="p-4">
-                    <Row className="align-items-center">
-                        <Col md={8}>
-                            <h2 className="fw-bold text-primary mb-1">{contract.filename}</h2>
-                            <p className="text-muted mb-3">Uploaded on: {new Date(contract.uploadDate).toLocaleString()}</p>
-                            <h5 className="fw-bold text-dark">Executive Summary</h5>
-                            <p className="lead fs-6 text-secondary">{analysis?.summary || "No summary available."}</p>
-                        </Col>
-                        <Col md={4} className="text-center border-start border-light">
-                            <h6 className="text-muted text-uppercase fw-bold mb-3">Risk Assessment</h6>
-                            <div className="position-relative d-inline-flex align-items-center justify-content-center mb-2" style={{ width: 120, height: 120, borderRadius: '50%', border: `8px solid var(--bs-${getVariant(analysis?.risk_level)})` }}>
-                                <div className={`display-6 fw-bold text-${getVariant(analysis?.risk_level)}`}>
-                                    {analysis?.risk_score || 0}
+                {/* --- MAIN SUMMARY CARD --- */}
+                <Card className="border-0 mb-4" style={glassStyle}>
+                    <Card.Body className="p-4">
+                        <Row className="align-items-center">
+                            <Col md={8}>
+                                <h2 className="fw-bold text-dark mb-1">{contract.filename}</h2>
+                                <p className="text-muted small mb-3">
+                                    Uploaded on: {new Date(contract.uploadDate).toLocaleString()}
+                                </p>
+                                <h5 className="fw-bold text-primary">Executive Summary</h5>
+                                <p className="text-secondary" style={{ lineHeight: '1.6' }}>
+                                    {analysis?.summary || "No summary available."}
+                                </p>
+                            </Col>
+                            <Col md={4} className="text-center border-start border-secondary border-opacity-10">
+                                <h6 className="text-muted text-uppercase fw-bold mb-3 small ls-1">Risk Assessment</h6>
+                                <div className="position-relative d-inline-flex align-items-center justify-content-center mb-3"
+                                     style={{
+                                         width: 130,
+                                         height: 130,
+                                         borderRadius: '50%',
+                                         border: `8px solid var(--bs-${getVariant(analysis?.risk_level)})`,
+                                         boxShadow: '0 0 20px rgba(0,0,0,0.05)',
+                                         background: '#fff'
+                                     }}>
+                                    <div className={`display-5 fw-bold text-${getVariant(analysis?.risk_level)}`}>
+                                        {analysis?.risk_score || 0}
+                                    </div>
                                 </div>
-                            </div>
-                            <div className="mt-2">
-                                <Badge bg={getVariant(analysis?.risk_level)} className="px-3 py-2 fs-6 rounded-pill">
-                                    {analysis?.risk_level || "Unknown"} Risk
-                                </Badge>
-                            </div>
-                        </Col>
-                    </Row>
-                </Card.Body>
-            </Card>
+                                <div>
+                                    <Badge bg={getVariant(analysis?.risk_level)} className="px-4 py-2 rounded-pill shadow-sm text-uppercase fw-bold">
+                                        {analysis?.risk_level || "Unknown"} Risk
+                                    </Badge>
+                                </div>
+                            </Col>
+                        </Row>
+                    </Card.Body>
+                </Card>
 
-            <Row>
-                <Col lg={7}>
-                    <Card className="shadow-sm border-0 mb-4">
-                        <Card.Header className="bg-white py-3">
-                            <h5 className="fw-bold text-danger m-0"><FaExclamationTriangle className="me-2" /> Key Risks Identified</h5>
-                        </Card.Header>
-                        <Card.Body className="p-0">
-                            {analysis?.key_risks?.length > 0 ? (
-                                <Accordion flush>
-                                    {analysis.key_risks.map((risk, idx) => (
-                                        <Accordion.Item eventKey={idx.toString()} key={idx}>
-                                            <Accordion.Header>
-                                                <Badge bg={getVariant(risk.severity)} className="me-2">{risk.severity}</Badge>
-                                                {risk.clause}
-                                            </Accordion.Header>
-                                            <Accordion.Body className="text-muted">
-                                                <strong>Why it's risky: </strong> {risk.risk_explanation}
-                                            </Accordion.Body>
-                                        </Accordion.Item>
-                                    ))}
-                                </Accordion>
-                            ) : <div className="p-3 text-muted">No significant risks detected.</div>}
-                        </Card.Body>
-                    </Card>
-
-                    <Row>
-                        <Col md={6}>
-                            <Card className="shadow-sm border-0 mb-4 h-100">
-                                <Card.Body>
-                                    <h5 className="fw-bold text-warning mb-3"><FaListUl className="me-2" /> Missing Clauses</h5>
-                                    <ul className="list-group list-group-flush small">
-                                        {analysis?.missing_clauses?.map((item, i) => (
-                                            <li key={i} className="list-group-item px-0 text-secondary border-0 py-1">
-                                                • {item}
-                                            </li>
+                <Row>
+                    {/* --- LEFT COLUMN: RISKS & RECOMMENDATIONS --- */}
+                    <Col lg={7}>
+                        {/* Key Risks */}
+                        <Card className="border-0 mb-4 shadow-sm" style={glassStyle}>
+                            <Card.Header className="bg-transparent border-0 pt-4 px-4 pb-2">
+                                <h5 className="fw-bold text-danger m-0"><FaExclamationTriangle className="me-2" /> Key Risks Identified</h5>
+                            </Card.Header>
+                            <Card.Body className="p-4 pt-2">
+                                {analysis?.key_risks?.length > 0 ? (
+                                    <Accordion flush className="custom-accordion">
+                                        {analysis.key_risks.map((risk, idx) => (
+                                            <Accordion.Item eventKey={idx.toString()} key={idx} className="bg-transparent border-bottom">
+                                                <Accordion.Header>
+                                                    <Badge bg={getVariant(risk.severity)} className="me-2 rounded-pill">{risk.severity}</Badge>
+                                                    <span className="text-dark fw-semibold">{risk.clause}</span>
+                                                </Accordion.Header>
+                                                <Accordion.Body className="text-muted small bg-white bg-opacity-50 rounded mb-2">
+                                                    <strong>Why it's risky: </strong> {risk.risk_explanation}
+                                                </Accordion.Body>
+                                            </Accordion.Item>
                                         ))}
-                                    </ul>
-                                </Card.Body>
-                            </Card>
-                        </Col>
-                        <Col md={6}>
-                            <Card className="shadow-sm border-0 mb-4 h-100">
-                                <Card.Body>
-                                    <h5 className="fw-bold text-success mb-3"><FaCheckCircle className="me-2" /> Recommendations</h5>
-                                    <ul className="list-group list-group-flush small">
-                                        {analysis?.recommendations?.map((item, i) => (
-                                            <li key={i} className="list-group-item px-0 text-secondary border-0 py-1">
-                                                • {item}
-                                            </li>
-                                        ))}
-                                    </ul>
-                                </Card.Body>
-                            </Card>
-                        </Col>
-                    </Row>
-                </Col>
+                                    </Accordion>
+                                ) : <div className="p-3 text-muted">No significant risks detected.</div>}
+                            </Card.Body>
+                        </Card>
 
-                <Col lg={5}>
-                    <Card className="shadow-sm border-0 h-100" style={{ minHeight: '500px' }}>
-                        <Card.Header className="bg-primary text-white py-3 fw-bold">
-                            <FaFileAlt className="me-2" /> Original Contract Content
-                        </Card.Header>
-                        <Card.Body className="p-0 position-relative">
-                            <div className="p-3 bg-light h-100 w-100 position-absolute" style={{ overflowY: 'auto', fontSize: '0.85rem', whiteSpace: 'pre-wrap', fontFamily: 'monospace' }}>
-                                {contract.rawText || "No text content available."}
-                            </div>
-                        </Card.Body>
-                    </Card>
-                </Col>
-            </Row>
-        </Container>
+                        <Row>
+                            {/* Missing Clauses */}
+                            <Col md={6}>
+                                <Card className="border-0 mb-4 h-100 shadow-sm" style={glassStyle}>
+                                    <Card.Body className="p-4">
+                                        <h5 className="fw-bold text-warning mb-3"><FaListUl className="me-2" /> Missing Clauses</h5>
+                                        <ul className="list-group list-group-flush small bg-transparent">
+                                            {analysis?.missing_clauses?.map((item, i) => (
+                                                <li key={i} className="list-group-item px-0 text-secondary border-0 py-1 bg-transparent">
+                                                    • {item}
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </Card.Body>
+                                </Card>
+                            </Col>
+
+                            {/* Recommendations */}
+                            <Col md={6}>
+                                <Card className="border-0 mb-4 h-100 shadow-sm" style={glassStyle}>
+                                    <Card.Body className="p-4">
+                                        <h5 className="fw-bold text-success mb-3"><FaCheckCircle className="me-2" /> Recommendations</h5>
+                                        <ul className="list-group list-group-flush small bg-transparent">
+                                            {analysis?.recommendations?.map((item, i) => (
+                                                <li key={i} className="list-group-item px-0 text-secondary border-0 py-1 bg-transparent">
+                                                    • {item}
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </Card.Body>
+                                </Card>
+                            </Col>
+                        </Row>
+                    </Col>
+
+                    {/* --- RIGHT COLUMN: RAW CONTENT --- */}
+                    <Col lg={5}>
+                        <Card className="border-0 h-100 shadow-lg" style={{ ...glassStyle, minHeight: '600px', overflow: 'hidden' }}>
+                            <Card.Header className="bg-white bg-opacity-50 border-bottom py-3 px-4 fw-bold text-primary">
+                                <FaFileAlt className="me-2" /> Original Contract Content
+                            </Card.Header>
+                            <Card.Body className="p-0 position-relative bg-white bg-opacity-25">
+                                <div className="p-4 h-100 w-100 position-absolute text-dark"
+                                     style={{
+                                         overflowY: 'auto',
+                                         fontSize: '0.85rem',
+                                         whiteSpace: 'pre-wrap',
+                                         fontFamily: 'Consolas, "Courier New", monospace',
+                                         lineHeight: '1.6'
+                                     }}>
+                                    {contract.rawText || "No text content available."}
+                                </div>
+                            </Card.Body>
+                        </Card>
+                    </Col>
+                </Row>
+            </Container>
+        </div>
     );
 };
 

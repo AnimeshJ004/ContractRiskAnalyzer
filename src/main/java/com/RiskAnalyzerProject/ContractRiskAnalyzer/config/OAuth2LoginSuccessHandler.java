@@ -27,6 +27,11 @@ public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHan
     @Autowired
     private UserRepository userRepository;
 
+    // Use a relative path so it works on both localhost:8080 and localhost:5173
+    // Or hardcode to 8080 if you are strictly testing Docker.
+    // Ideally, use a property, but for now, let's point to the root (relative).
+    private final String FRONTEND_URL = ""; // Empty string means "relative to current domain"
+
     @Override
     public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response, Authentication authentication) throws IOException, ServletException {
         OAuth2User oAuth2User = (OAuth2User) authentication.getPrincipal();
@@ -35,7 +40,6 @@ public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHan
 
         Optional<User> existingUser = userRepository.findByEmail(email);
 
-        // 1. Determine user intent from cookie (default to "login" if missing)
         String authIntent = "login";
         if (request.getCookies() != null) {
             for (Cookie cookie : request.getCookies()) {
@@ -47,31 +51,23 @@ public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHan
         }
 
         if (existingUser.isPresent()) {
-            // SCENARIO: User Exists
-
             if ("register".equals(authIntent)) {
-                // If they tried to REGISTER but account exists -> Redirect to Login with Error
-                String targetUrl = "http://localhost:5173/login?error=user_exists";
+                // Redirect to /login on the SAME domain
+                String targetUrl = FRONTEND_URL + "/login?error=user_exists";
                 getRedirectStrategy().sendRedirect(request, response, targetUrl);
             } else {
-                // Normal Login -> Dashboard
                 String token = jwtUtil.generateToken(existingUser.get().getUsername());
-                String targetUrl = "http://localhost:5173/login?token=" + token;
+                // Redirect to /login on the SAME domain
+                String targetUrl = FRONTEND_URL + "/login?token=" + token;
                 getRedirectStrategy().sendRedirect(request, response, targetUrl);
             }
-
         } else {
-            // SCENARIO: New User
-
             if ("login".equals(authIntent)) {
-                // --- STRICT CHECK: BLOCK CREATION ON LOGIN ---
-                // User clicked "Login" but has no account -> Redirect to Register Page
-                String targetUrl = "http://localhost:5173/register?error=account_not_found";
+                String targetUrl = FRONTEND_URL + "/register?error=account_not_found";
                 getRedirectStrategy().sendRedirect(request, response, targetUrl);
             } else {
-                // User clicked "Register" -> Allow creation
                 String tempToken = jwtUtil.generateToken(email);
-                String targetUrl = "http://localhost:5173/complete-registration"
+                String targetUrl = FRONTEND_URL + "/complete-registration"
                         + "?email=" + URLEncoder.encode(email, StandardCharsets.UTF_8)
                         + "&name=" + URLEncoder.encode(name != null ? name : "", StandardCharsets.UTF_8)
                         + "&tempToken=" + tempToken;

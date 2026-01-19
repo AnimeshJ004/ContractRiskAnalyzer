@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from 'react';
 import api, { deleteContract } from '../api/axiosConfig';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import { Container, Navbar, Button, Row, Col, Card, Form, ProgressBar, Badge, Modal, Dropdown, Alert } from 'react-bootstrap';
+import { Container, Navbar, Button, Row, Col, Card, Form, ProgressBar, Badge, Modal, Dropdown, Alert, InputGroup } from 'react-bootstrap';
 import {
     FaCheckCircle,
     FaExclamationTriangle,
@@ -19,20 +19,39 @@ import {
     FaUser,
     FaBatteryHalf,
     FaInfinity,
-    FaCreditCard
+    FaCreditCard,
+    FaSearch,
+    FaCloudUploadAlt,
+    FaArrowRight
 } from 'react-icons/fa';
+
+// --- GLASSMORPHISM STYLE ---
+const glassStyle = {
+    background: 'rgba(255, 255, 255, 0.75)',
+    backdropFilter: 'blur(12px)',
+    WebkitBackdropFilter: 'blur(12px)',
+    border: '1px solid rgba(255, 255, 255, 0.5)',
+    boxShadow: '0 8px 32px 0 rgba(31, 38, 135, 0.1)',
+    transition: 'all 0.3s ease'
+};
+
+const hoverStyle = {
+    transform: 'translateY(-5px)',
+    boxShadow: '0 12px 40px 0 rgba(31, 38, 135, 0.15)'
+};
 
 const Dashboard = () => {
     // --- STATE MANAGEMENT ---
     const [contracts, setContracts] = useState([]);
     const [uploading, setUploading] = useState(false);
+    const [searchTerm, setSearchTerm] = useState('');
 
     // User Profile State
     const [user, setUser] = useState({ username: 'User', email: '', role: 'USER' });
 
     // Rate Limiting State
     const [remainingQuota, setRemainingQuota] = useState(null);
-    const [timerString, setTimerString] = useState(""); // For "43:12" countdown
+    const [timerString, setTimerString] = useState("");
 
     // File Upload State
     const [selectedFile, setSelectedFile] = useState(null);
@@ -55,7 +74,6 @@ const Dashboard = () => {
     // --- COUNTDOWN TIMER LOGIC ---
     useEffect(() => {
         let interval;
-        // Only run timer if we have a resetTime AND quota is 0
         if (remainingQuota?.resetTime && remainingQuota.remaining === 0) {
             interval = setInterval(() => {
                 const now = Date.now();
@@ -63,10 +81,9 @@ const Dashboard = () => {
 
                 if (diff <= 0) {
                     setTimerString("");
-                    fetchQuota(); // Auto-refresh when timer hits 0
+                    fetchQuota();
                     clearInterval(interval);
                 } else {
-                    // Format milliseconds to MM:SS
                     const minutes = Math.floor((diff / 1000 / 60) % 60);
                     const seconds = Math.floor((diff / 1000) % 60);
                     setTimerString(
@@ -107,8 +124,6 @@ const Dashboard = () => {
     };
 
     // --- HANDLERS ---
-
-    // 1. Delete Handlers
     const handleDeleteClick = (id, e) => {
         e.stopPropagation();
         setContractToDelete(id);
@@ -120,7 +135,7 @@ const Dashboard = () => {
         try {
             await deleteContract(contractToDelete);
             toast.success("Contract deleted successfully!");
-            fetchContracts(); // Refresh list
+            fetchContracts();
         } catch (error) {
             toast.error("Failed to delete contract");
         } finally {
@@ -129,7 +144,6 @@ const Dashboard = () => {
         }
     };
 
-    // 2. File Selection
     const handleFileSelect = (e) => {
         const file = e.target.files[0];
         if (file) {
@@ -137,8 +151,7 @@ const Dashboard = () => {
         }
     };
 
-    // 3. Upload Handler
-    const handleUpload = async (e) => {
+    const handleUpload = async () => {
         if (!selectedFile) return;
 
         const formData = new FormData();
@@ -151,8 +164,8 @@ const Dashboard = () => {
                 headers: { 'Content-Type': 'multipart/form-data' }
             });
             toast.success("Upload Complete!");
-            fetchContracts(); // Refresh list
-            fetchQuota();     // Refresh quota
+            fetchContracts();
+            fetchQuota();
             setSelectedFile(null);
             if (fileInputRef.current) {
                 fileInputRef.current.value = "";
@@ -165,25 +178,21 @@ const Dashboard = () => {
         }
     };
 
-    // 4. Payment Handler (Razorpay)
     const handleBuyCredits = async (planType) => {
-        const amount = planType === '2_TOKENS' ? 50 : 80; // Price in Rupees
+        const amount = planType === '2_TOKENS' ? 50 : 80;
 
         try {
-            // A. Create Order
             const orderRes = await api.post('/payment/create-order', { amount });
-            const orderData = JSON.parse(orderRes.data); // Razorpay returns stringified JSON
+            const orderData = JSON.parse(orderRes.data);
 
-            // B. Open Razorpay Popup
             const options = {
-                key: "YOUR_RAZORPAY_KEY_ID_HERE", // <--- REPLACE WITH YOUR ACTUAL KEY ID
+                key: "YOUR_RAZORPAY_KEY_ID_HERE", // Keep your existing key or logic
                 amount: orderData.amount,
                 currency: "INR",
                 name: "Contract Risk Analyzer",
                 description: planType === '2_TOKENS' ? "Top-up: 2 Credits" : "Top-up: 5 Credits",
                 order_id: orderData.id,
                 handler: async function (response) {
-                    // C. Verify Payment
                     try {
                         await api.post('/payment/verify-payment', {
                             planType: planType,
@@ -192,7 +201,7 @@ const Dashboard = () => {
                             signature: response.razorpay_signature
                         });
                         toast.success("Payment Successful! Credits added.");
-                        fetchQuota(); // Refresh quota immediately
+                        fetchQuota();
                     } catch (err) {
                         toast.error("Payment verification failed.");
                     }
@@ -201,9 +210,7 @@ const Dashboard = () => {
                     name: user.username,
                     email: user.email
                 },
-                theme: {
-                    color: "#0d6efd"
-                }
+                theme: { color: "#4f46e5" }
             };
 
             const rzp1 = new window.Razorpay(options);
@@ -215,7 +222,6 @@ const Dashboard = () => {
         }
     };
 
-    // 5. Logout Handler
     const handleLogout = async () => {
         try { await api.post('/auth/logout'); } catch (e) { }
         localStorage.removeItem('jwtToken');
@@ -223,7 +229,6 @@ const Dashboard = () => {
         toast.success("Logout Successful!")
     };
 
-    // Helper for Risk Badges
     const getRiskBadge = (riskLevel = 'low') => {
         const riskLevels = {
             low: { text: 'Low Risk', variant: 'success', icon: <FaCheckCircle /> },
@@ -233,175 +238,159 @@ const Dashboard = () => {
         return riskLevels[riskLevel] || riskLevels.low;
     };
 
+    const filteredContracts = contracts.filter(c =>
+        c.filename.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
     return (
-        <div className="min-vh-100 fade-in">
-            {/* NAVBAR */}
-            <Navbar bg={isAdmin ? "dark" : "primary"} variant="dark" className="px-4 py-3 shadow-sm">
-                <Container fluid>
-                    <Navbar.Brand className="fw-bold" onClick={() => navigate('/')} style={{ cursor: 'pointer' }}>
-                        {isAdmin ? <FaShieldAlt className="me-2 text-warning" /> : <FaFileContract className="me-2" />}
-                        {isAdmin ? "Admin Console" : "Contract Risk Analyzer"}
-                    </Navbar.Brand>
+        <div className="min-vh-100 fade-in pb-5"
+             style={{
+                 background: 'linear-gradient(135deg, #e0e7ff 0%, #f3f4f6 100%)',
+                 position: 'relative',
+                 overflowX: 'hidden'
+             }}>
+
+            {/* Background Blobs */}
+            <div style={{ position: 'absolute', top: '-10%', left: '-10%', width: '600px', height: '600px', background: '#6366f1', filter: 'blur(150px)', opacity: '0.15', borderRadius: '50%', zIndex: '0' }}></div>
+
+            <Container style={{ position: 'relative', zIndex: 1 }} className="pt-4">
+
+                {/* --- 1. NAVBAR (Integrated into Dashboard header for cleaner look) --- */}
+                <div className="d-flex justify-content-between align-items-center mb-5">
+                    <div>
+                        <div className="d-flex align-items-center gap-2 mb-1"
+                            onClick={() => navigate('/')}
+                            style={{ cursor: 'pointer' }}
+                            title="Go to Home Page">
+                             {isAdmin ? <FaShieldAlt className="text-danger" size={24} /> : <FaFileContract className="text-primary" size={24} />}
+                             <h3 className="fw-bold text-dark mb-0">{isAdmin ? "Admin Console" : "Contract Risk Analyzer"}</h3>
+                        </div>
+                        <p className="text-muted mb-0 ms-1">Welcome back, <span className="fw-bold text-primary">{user.username}</span></p>
+                    </div>
 
                     <div className="d-flex gap-3 align-items-center">
-                        <Button variant="light" className="d-flex align-items-center fw-bold text-primary" onClick={() => navigate('/chat/general')}>
-                            <FaComments className="me-2" />General AI Chat
+                        <Button variant="white" className="shadow-sm rounded-pill fw-bold text-primary border" onClick={() => navigate('/chat/general')}>
+                            <FaComments className="me-2" /> AI Chat
                         </Button>
 
                         <Dropdown align="end">
-                            <Dropdown.Toggle variant="outline-light" id="profile-dropdown" className="d-flex align-items-center border-0" style={{ backgroundColor: 'rgba(255,255,255,0.2)' }}>
-                                <FaUserCircle size={20} className="me-2" />
-                                {user.username} {isAdmin && <Badge bg="warning" text="dark" className="ms-2">ADMIN</Badge>}
+                            <Dropdown.Toggle variant="white" id="profile-dropdown" className="d-flex align-items-center border shadow-sm rounded-pill px-3 py-2 text-dark bg-white">
+                                <FaUserCircle size={20} className="me-2 text-secondary" />
+                                {user.username} {isAdmin && <Badge bg="danger" className="ms-2">ADMIN</Badge>}
                             </Dropdown.Toggle>
-                            <Dropdown.Menu className="shadow-lg border-0 p-0 mt-2" style={{ minWidth: '260px' }}>
-                                <div className="px-4 py-3 bg-light border-bottom rounded-top">
-                                    <div className="fw-bold text-dark mb-1">{user.username}</div>
+                            <Dropdown.Menu className="shadow-lg border-0 p-0 mt-2 rounded-3 overflow-hidden" style={{ minWidth: '240px' }}>
+                                <div className="px-4 py-3 bg-light border-bottom">
+                                    <div className="fw-bold text-dark">{user.username}</div>
                                     <div className="small text-muted text-truncate">{user.email}</div>
-                                    <div className="mt-1"><Badge bg={isAdmin ? "danger" : "info"}>{user.role}</Badge></div>
                                 </div>
                                 <div className="p-2">
-                                    <Dropdown.Item onClick={() => navigate('/settings')} className="rounded py-2 d-flex align-items-center">
-                                        <FaCog className="me-3 text-secondary" /> Profile Settings
+                                    <Dropdown.Item onClick={() => navigate('/settings')} className="rounded py-2">
+                                        <FaCog className="me-2 text-muted" /> Settings
                                     </Dropdown.Item>
                                     <Dropdown.Divider />
-                                    <Dropdown.Item onClick={handleLogout} className="rounded py-2 text-danger d-flex align-items-center">
-                                        <FaSignOutAlt className="me-3" /> Logout
+                                    <Dropdown.Item onClick={handleLogout} className="rounded py-2 text-danger">
+                                        <FaSignOutAlt className="me-2" /> Logout
                                     </Dropdown.Item>
                                 </div>
                             </Dropdown.Menu>
                         </Dropdown>
                     </div>
-                </Container>
-            </Navbar>
+                </div>
 
-            <Container className="py-4">
-
-                {/* QUOTA WARNING BANNER WITH TIMER */}
+                {/* --- 2. QUOTA WARNING --- */}
                 {!isAdmin && remainingQuota?.remaining === 0 && (
-                    <Alert variant="warning" className="mb-4 shadow-sm border-warning">
-                        <div className="d-flex align-items-center justify-content-center fw-bold">
-                            <FaClock className="me-2 text-danger" size={20} />
+                    <Alert variant="warning" className="mb-4 shadow-sm border-0 border-start border-warning border-5 rounded-3 bg-white">
+                        <div className="d-flex align-items-center fw-bold text-dark">
+                            <FaClock className="me-2 text-warning" size={20} />
                             <span>
-                                Quota Exceeded. Refill in: <span className="text-danger fs-5 ms-2 font-monospace">{timerString || "Calculating..."}</span>
+                                Daily Quota Exceeded. Refill in: <span className="text-danger fs-5 ms-2 font-monospace">{timerString || "..."}</span>
                             </span>
                         </div>
                     </Alert>
                 )}
 
-                {/* CREDIT TOP-UP SECTION */}
-                {!isAdmin && (
-                    <Card className="mb-4 border-primary shadow-sm" style={{ background: 'linear-gradient(to right, #f8f9fa, #e9ecef)' }}>
-                        <Card.Body className="d-flex justify-content-between align-items-center flex-wrap gap-3">
-                            <div className="d-flex align-items-center">
-                                <div className="bg-white p-3 rounded-circle shadow-sm me-3 text-primary">
-                                    <FaCreditCard size={24} />
+                {/* --- 3. TOP-UP & STATS ROW --- */}
+                <Row className="g-4 mb-5">
+                    {!isAdmin && (
+                        <Col md={12} lg={6}>
+                            <Card className="border-0 h-100" style={{ ...glassStyle, background: 'linear-gradient(135deg, #4f46e5 0%, #4338ca 100%)', color: 'white' }}>
+                                <Card.Body className="p-4 d-flex flex-column justify-content-between">
+                                    <div className="d-flex justify-content-between align-items-start">
+                                        <div>
+                                            <h6 className="text-white-50 text-uppercase small fw-bold ls-1 mb-1">Available Credits</h6>
+                                            <h2 className="fw-bold mb-0 display-5">
+                                                {remainingQuota?.isUnlimited ? <FaInfinity /> : remainingQuota?.remaining}
+                                            </h2>
+                                        </div>
+                                        <FaCreditCard size={32} className="text-warning opacity-75" />
+                                    </div>
+
+                                    <div className="d-flex gap-2 mt-4">
+                                        <Button variant="outline-light" className="flex-grow-1 fw-bold" onClick={() => handleBuyCredits('2_TOKENS')}>
+                                            +2 Credits (₹50)
+                                        </Button>
+                                        <Button variant="light" className="flex-grow-1 fw-bold text-primary" onClick={() => handleBuyCredits('5_TOKENS')}>
+                                            +5 Credits (₹80)
+                                        </Button>
+                                    </div>
+                                </Card.Body>
+                            </Card>
+                        </Col>
+                    )}
+
+                    <Col md={12} lg={!isAdmin ? 6 : 12}>
+                        <Card className="border-0 h-100" style={glassStyle}>
+                            <Card.Body className="p-4">
+                                <div className="d-flex justify-content-between align-items-center mb-4">
+                                    <h5 className="fw-bold mb-0 text-dark"><FaUpload className="me-2 text-primary" />Quick Upload</h5>
+                                    {selectedFile && <Badge bg="success">File Selected</Badge>}
                                 </div>
-                                <div>
-                                    <h5 className="fw-bold text-primary mb-1">Need more analysis credits?</h5>
-                                    <p className="text-muted mb-0 small">
-                                        Top up instantly to skip the waiting period. Credits never expire.
-                                    </p>
-                                </div>
-                            </div>
-                            <div className="d-flex gap-2">
-                                <Button variant="outline-primary" className="fw-semibold" onClick={() => handleBuyCredits('2_TOKENS')}>
-                                    Buy 2 Credits (₹50)
-                                </Button>
-                                <Button variant="primary" className="fw-bold shadow-sm" onClick={() => handleBuyCredits('5_TOKENS')}>
-                                    Buy 5 Credits (₹80) <Badge bg="warning" text="dark" className="ms-2 shadow-sm">-36% OFF</Badge>
-                                </Button>
-                            </div>
-                        </Card.Body>
-                    </Card>
-                )}
 
-                {/* UPLOAD CARD */}
-                <Card className="mb-5 border-0 shadow-sm" style={{ opacity: (!isAdmin && remainingQuota?.remaining === 0) ? 0.6 : 1 }}>
-                    <Card.Body className="p-5 text-center">
-                        <FaUpload size={48} className="text-primary mb-3" />
-                        <h4 className="fw-bold mb-3">Upload New Contract</h4>
-
-                        <div className="w-75 mx-auto">
-                            <Form.Group controlId="formFile" className="mb-3">
-                                <Form.Control
-                                    type="file"
-                                    ref={fileInputRef}
-                                    onChange={handleFileSelect}
-                                    accept="application/pdf"
-                                    disabled={uploading || (!isAdmin && remainingQuota?.remaining === 0)}
-                                    className="form-control-lg"
-                                />
-                            </Form.Group>
-
-                            {selectedFile && (
-                                <div className="fade-in">
-                                    <p className="text-muted small mb-2">Selected: {selectedFile.name}</p>
+                                <div className="d-flex gap-3 align-items-center">
+                                    <Form.Control
+                                        type="file"
+                                        ref={fileInputRef}
+                                        onChange={handleFileSelect}
+                                        accept="application/pdf"
+                                        disabled={uploading || (!isAdmin && remainingQuota?.remaining === 0)}
+                                        className="shadow-sm border-0 py-2"
+                                    />
                                     <Button
-                                        variant="success"
-                                        size="lg"
+                                        variant="primary"
                                         onClick={handleUpload}
-                                        disabled={uploading}
-                                        className="w-100 shadow-sm"
+                                        disabled={uploading || !selectedFile}
+                                        className="shadow-lg rounded-pill px-4 fw-bold d-flex align-items-center"
+                                        style={{ minWidth: '140px' }}
                                     >
-                                        {uploading ? (
-                                            <>
-                                                <FaRobot className="me-2 pulse" /> Analyzing...
-                                            </>
-                                        ) : (
-                                            <>
-                                                <FaUpload className="me-2" /> Upload & Analyze
-                                            </>
-                                        )}
+                                        {uploading ? <><FaRobot className="me-2 pulse" /> Analyzing</> : <><FaCloudUploadAlt className="me-2" /> Analyze</>}
                                     </Button>
                                 </div>
-                            )}
-                        </div>
+                                {uploading && <ProgressBar animated now={100} className="mt-3" style={{ height: '4px' }} />}
+                            </Card.Body>
+                        </Card>
+                    </Col>
+                </Row>
 
-                        {uploading && (
-                            <div className="mt-4">
-                                <ProgressBar animated now={75} className="w-50 mx-auto" />
-                                <div className="text-muted mt-2 small">This may take up to 30 seconds...</div>
-                            </div>
-                        )}
-                    </Card.Body>
-                </Card>
-
-                {/* CONTRACTS HEADER */}
+                {/* --- 4. SEARCH & FILTER --- */}
                 <div className="d-flex justify-content-between align-items-center mb-4">
-                    <div>
-                        <h4 className="fw-bold mb-0">
-                            {isAdmin ? <><FaShieldAlt className="me-2 text-danger" />All System Contracts</> : "My Contracts"}
-                        </h4>
-
-                        {!isAdmin && remainingQuota !== null && (
-                            <div className="mt-2">
-                                <Badge
-                                    bg={remainingQuota.remaining > 0 ? "success" : "danger"}
-                                    className="d-inline-flex align-items-center py-2 px-3"
-                                >
-                                    {remainingQuota.isUnlimited ? (
-                                        <>
-                                            <FaInfinity className="me-2" />
-                                            <span>Unlimited Uploads</span>
-                                        </>
-                                    ) : (
-                                        <>
-                                            <FaBatteryHalf className="me-2" />
-                                            <span>Daily Credits: {remainingQuota.remaining} left</span>
-                                        </>
-                                    )}
-                                </Badge>
-                            </div>
-                        )}
-
-                        {isAdmin && <small className="text-muted d-block mt-1">You have full access to view and delete all files.</small>}
-                    </div>
-                    <Badge bg="secondary" className="fs-6">{contracts.length} found</Badge>
+                    <h4 className="fw-bold text-dark mb-0">
+                        {isAdmin ? "System Contracts" : "My Contracts"}
+                        <span className="text-muted ms-2 fs-6 fw-normal">({filteredContracts.length})</span>
+                    </h4>
+                    <InputGroup className="shadow-sm rounded-pill overflow-hidden border-0 bg-white" style={{ maxWidth: '300px' }}>
+                        <InputGroup.Text className="bg-white border-0 ps-3 text-muted"><FaSearch /></InputGroup.Text>
+                        <Form.Control
+                            placeholder="Search..."
+                            className="border-0 shadow-none"
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                        />
+                    </InputGroup>
                 </div>
 
-                {/* CONTRACTS GRID */}
+                {/* --- 5. CONTRACTS GRID --- */}
                 <Row xs={1} md={2} lg={3} xl={4} className="g-4">
-                    {contracts.map((contract) => {
+                    {filteredContracts.map((contract) => {
                         let riskLevel = 'low';
                         try {
                             if (contract.analysisJson) {
@@ -413,40 +402,52 @@ const Dashboard = () => {
 
                         return (
                             <Col key={contract.id}>
-                                <Card className={`h-100 border-0 shadow-sm ${isAdmin ? 'border-top border-warning border-3' : ''}`}>
-                                    <Card.Body className="d-flex flex-column">
+                                <Card
+                                    className={`h-100 border-0 ${isAdmin ? 'border-top border-warning border-3' : ''}`}
+                                    style={glassStyle}
+                                    onMouseEnter={(e) => Object.assign(e.currentTarget.style, hoverStyle)}
+                                    onMouseLeave={(e) => {
+                                        e.currentTarget.style.transform = 'none';
+                                        e.currentTarget.style.boxShadow = glassStyle.boxShadow;
+                                    }}
+                                >
+                                    <Card.Body className="d-flex flex-column p-4">
                                         <div className="d-flex justify-content-between align-items-start mb-3">
-                                            <FaFileContract size={24} className="text-primary" />
-                                            <Badge bg={riskBadge.variant} className="d-flex align-items-center">
+                                            <div className="bg-white p-2 rounded shadow-sm text-primary">
+                                                <FaFileContract size={20} />
+                                            </div>
+                                            <Badge bg={riskBadge.variant} className="py-2 px-3 rounded-pill fw-normal d-flex align-items-center shadow-sm">
                                                 {riskBadge.icon} <span className="ms-1">{riskBadge.text}</span>
                                             </Badge>
                                         </div>
 
-                                        <Card.Title className="text-truncate fw-semibold mb-1" title={contract.filename}>
+                                        <Card.Title className="text-truncate fw-bold text-dark mb-1" title={contract.filename}>
                                             {contract.filename}
                                         </Card.Title>
 
                                         {isAdmin && (
-                                            <div className="mb-2 text-muted small bg-light rounded p-1 d-inline-block">
-                                                <FaUser className="me-1" /> Owner: <strong>{contract.ownerUsername}</strong>
+                                            <div className="mb-2 text-muted small bg-light rounded p-1 px-2 d-inline-block border">
+                                                <FaUser className="me-1" /> {contract.ownerUsername}
                                             </div>
                                         )}
 
-                                        <Card.Text className="text-muted small mb-3">
+                                        <Card.Text className="text-muted small mb-4">
                                             <FaClock className="me-1" />
                                             {new Date(contract.uploadDate).toLocaleDateString()}
                                         </Card.Text>
 
-                                        <div className="mt-auto d-flex gap-2">
-                                            <Button variant="outline-primary" className="flex-grow-1" onClick={() => navigate(`/contracts/${contract.id}`)}>
-                                                Report
+                                        <div className="mt-auto d-grid gap-2">
+                                            <Button variant="outline-primary" size="sm" className="rounded-pill fw-semibold" onClick={() => navigate(`/contracts/${contract.id}`)}>
+                                                View Report <FaArrowRight className="ms-1" size={10} />
                                             </Button>
-                                            <Button variant="primary" className="flex-grow-1" onClick={() => navigate(`/chat/${contract.id}`)}>
-                                                Chat
-                                            </Button>
-                                            <Button variant="outline-danger" onClick={(e) => handleDeleteClick(contract.id, e)} title="Delete Contract">
-                                                <FaTrash />
-                                            </Button>
+                                            <div className="d-flex gap-2">
+                                                <Button variant="primary" size="sm" className="flex-grow-1 rounded-pill fw-semibold shadow-sm" onClick={() => navigate(`/chat/${contract.id}`)}>
+                                                    <FaComments className="me-1" /> Chat
+                                                </Button>
+                                                <Button variant="light" size="sm" className="rounded-circle text-danger shadow-sm" onClick={(e) => handleDeleteClick(contract.id, e)} title="Delete">
+                                                    <FaTrash />
+                                                </Button>
+                                            </div>
                                         </div>
                                     </Card.Body>
                                 </Card>
@@ -454,25 +455,25 @@ const Dashboard = () => {
                         );
                     })}
                 </Row>
+
             </Container>
 
             {/* DELETE MODAL */}
-            <Modal show={showDeleteModal} onHide={() => setShowDeleteModal(false)} centered>
-                <Modal.Header closeButton>
+            <Modal show={showDeleteModal} onHide={() => setShowDeleteModal(false)} centered backdrop="static">
+                <Modal.Header closeButton className="border-0 pb-0">
                     <Modal.Title className="text-danger fw-bold">
                         <FaExclamationTriangle className="me-2" /> Confirm Deletion
                     </Modal.Title>
                 </Modal.Header>
-                <Modal.Body>
-                    <p className="mb-0">Are you sure you want to delete this contract?</p>
-                    <small className="text-muted">This action cannot be undone.</small>
-                    {isAdmin && <p className="text-danger fw-bold mt-2 small">Warning: As an Admin, you are deleting a user's file.</p>}
+                <Modal.Body className="pt-2">
+                    <p className="mb-0 text-muted">Are you sure you want to permanently delete this contract?</p>
+                    {isAdmin && <Alert variant="danger" className="mt-3 mb-0 py-2 small fw-bold">Admin Action: You are deleting a user's file.</Alert>}
                 </Modal.Body>
-                <Modal.Footer>
-                    <Button variant="secondary" onClick={() => setShowDeleteModal(false)}>
+                <Modal.Footer className="border-0 pt-0">
+                    <Button variant="light" onClick={() => setShowDeleteModal(false)} className="rounded-pill px-4 fw-bold">
                         Cancel
                     </Button>
-                    <Button variant="danger" onClick={confirmDelete}>
+                    <Button variant="danger" onClick={confirmDelete} className="rounded-pill px-4 fw-bold shadow-sm">
                         Yes, Delete It
                     </Button>
                 </Modal.Footer>
