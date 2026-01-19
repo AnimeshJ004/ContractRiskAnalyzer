@@ -36,3 +36,4 @@ build/
 application.yml
 TODO.md
 TODO_FIXES.md
+docker-compose.yml

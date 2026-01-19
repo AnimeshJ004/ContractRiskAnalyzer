@@ -9,7 +9,7 @@ services:
       - "8080:8080"
     environment:
       # Override localhost with the service name 'mongo'
-      - SPRING_DATA_MONGODB_URI=mongodb://mongo:27017/contractdb
+      - SPRING_DATA_MONGODB_URI=mongodb+srv://animeshj425_db_user:ContractRiskAtlas@cluster0.ssioq3d.mongodb.net/?appName=Cluster0
       # Add your other API keys here if needed
       # - SPRING_AI_OPENAI_API_KEY=your_key_here
     depends_on:

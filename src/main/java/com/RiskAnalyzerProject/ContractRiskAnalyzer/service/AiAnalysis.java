@@ -107,7 +107,7 @@ public class AiAnalysis {
         }
         OpenAiChatOptions options = OpenAiChatOptions.builder()
                 .model("llama-3.3-70b-versatile")
-                .temperature(0.0)
+                .temperature(0.1)
                 .build();
         String response =  chatClient.prompt()
                 .system(prompt)
