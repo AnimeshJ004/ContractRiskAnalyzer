@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from 'react';
 import api, { deleteContract } from '../api/axiosConfig';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import { Container, Navbar, Button, Row, Col, Card, Form, ProgressBar, Badge, Modal, Dropdown, Alert, InputGroup } from 'react-bootstrap';
+import { Container, Button, Row, Col, Card, Form, ProgressBar, Badge, Modal, Dropdown, Alert, InputGroup } from 'react-bootstrap';
 import {
     FaCheckCircle,
     FaExclamationTriangle,
@@ -17,12 +17,12 @@ import {
     FaCog,
     FaShieldAlt,
     FaUser,
-    FaBatteryHalf,
-    FaInfinity,
     FaCreditCard,
     FaSearch,
     FaCloudUploadAlt,
-    FaArrowRight
+    FaArrowRight,
+    FaInfinity,
+    FaCalendarCheck
 } from 'react-icons/fa';
 
 // --- GLASSMORPHISM STYLE ---
@@ -178,50 +178,6 @@ const Dashboard = () => {
         }
     };
 
-    const handleBuyCredits = async (planType) => {
-        const amount = planType === '2_TOKENS' ? 50 : 80;
-
-        try {
-            const orderRes = await api.post('/payment/create-order', { amount });
-            const orderData = JSON.parse(orderRes.data);
-
-            const options = {
-                key: "YOUR_RAZORPAY_KEY_ID_HERE", // Keep your existing key or logic
-                amount: orderData.amount,
-                currency: "INR",
-                name: "Contract Risk Analyzer",
-                description: planType === '2_TOKENS' ? "Top-up: 2 Credits" : "Top-up: 5 Credits",
-                order_id: orderData.id,
-                handler: async function (response) {
-                    try {
-                        await api.post('/payment/verify-payment', {
-                            planType: planType,
-                            paymentId: response.razorpay_payment_id,
-                            orderId: response.razorpay_order_id,
-                            signature: response.razorpay_signature
-                        });
-                        toast.success("Payment Successful! Credits added.");
-                        fetchQuota();
-                    } catch (err) {
-                        toast.error("Payment verification failed.");
-                    }
-                },
-                prefill: {
-                    name: user.username,
-                    email: user.email
-                },
-                theme: { color: "#4f46e5" }
-            };
-
-            const rzp1 = new window.Razorpay(options);
-            rzp1.open();
-
-        } catch (error) {
-            console.error(error);
-            toast.error("Failed to initiate payment. Try again.");
-        }
-    };
-
     const handleLogout = async () => {
         try { await api.post('/auth/logout'); } catch (e) { }
         localStorage.removeItem('jwtToken');
@@ -255,13 +211,16 @@ const Dashboard = () => {
 
             <Container style={{ position: 'relative', zIndex: 1 }} className="pt-4">
 
-                {/* --- 1. NAVBAR (Integrated into Dashboard header for cleaner look) --- */}
+                {/* --- 1. NAVBAR --- */}
                 <div className="d-flex justify-content-between align-items-center mb-5">
                     <div>
-                        <div className="d-flex align-items-center gap-2 mb-1"
+                        {/* CLICKABLE BRAND */}
+                        <div
+                            className="d-flex align-items-center gap-2 mb-1"
                             onClick={() => navigate('/')}
                             style={{ cursor: 'pointer' }}
-                            title="Go to Home Page">
+                            title="Go to Home Page"
+                        >
                              {isAdmin ? <FaShieldAlt className="text-danger" size={24} /> : <FaFileContract className="text-primary" size={24} />}
                              <h3 className="fw-bold text-dark mb-0">{isAdmin ? "Admin Console" : "Contract Risk Analyzer"}</h3>
                         </div>
@@ -297,7 +256,7 @@ const Dashboard = () => {
                     </div>
                 </div>
 
-                {/* --- 2. QUOTA WARNING --- */}
+                {/* --- 2. QUOTA WARNING (If 0 Credits) --- */}
                 {!isAdmin && remainingQuota?.remaining === 0 && (
                     <Alert variant="warning" className="mb-4 shadow-sm border-0 border-start border-warning border-5 rounded-3 bg-white">
                         <div className="d-flex align-items-center fw-bold text-dark">
@@ -309,29 +268,26 @@ const Dashboard = () => {
                     </Alert>
                 )}
 
-                {/* --- 3. TOP-UP & STATS ROW --- */}
+                {/* --- 3. STATS & UPLOAD ROW --- */}
                 <Row className="g-4 mb-5">
                     {!isAdmin && (
                         <Col md={12} lg={6}>
+                            {/* UPDATED: Credits Card (No Payment Buttons) */}
                             <Card className="border-0 h-100" style={{ ...glassStyle, background: 'linear-gradient(135deg, #4f46e5 0%, #4338ca 100%)', color: 'white' }}>
-                                <Card.Body className="p-4 d-flex flex-column justify-content-between">
+                                <Card.Body className="p-4 d-flex flex-column justify-content-center">
                                     <div className="d-flex justify-content-between align-items-start">
                                         <div>
-                                            <h6 className="text-white-50 text-uppercase small fw-bold ls-1 mb-1">Available Credits</h6>
+                                            <h6 className="text-white-50 text-uppercase small fw-bold ls-1 mb-1">Daily Credits</h6>
                                             <h2 className="fw-bold mb-0 display-5">
                                                 {remainingQuota?.isUnlimited ? <FaInfinity /> : remainingQuota?.remaining}
                                             </h2>
+                                            <p className="text-white-50 small mt-2 mb-0">
+                                                <FaCalendarCheck className="me-1"/> Resets automatically every 24 hours.
+                                            </p>
                                         </div>
-                                        <FaCreditCard size={32} className="text-warning opacity-75" />
-                                    </div>
-
-                                    <div className="d-flex gap-2 mt-4">
-                                        <Button variant="outline-light" className="flex-grow-1 fw-bold" onClick={() => handleBuyCredits('2_TOKENS')}>
-                                            +2 Credits (₹50)
-                                        </Button>
-                                        <Button variant="light" className="flex-grow-1 fw-bold text-primary" onClick={() => handleBuyCredits('5_TOKENS')}>
-                                            +5 Credits (₹80)
-                                        </Button>
+                                        <div className="bg-white bg-opacity-10 p-3 rounded-circle text-warning">
+                                            <FaCreditCard size={32} />
+                                        </div>
                                     </div>
                                 </Card.Body>
                             </Card>

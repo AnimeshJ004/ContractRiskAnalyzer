@@ -19,6 +19,4 @@ public class User {
     private String otp;
     private LocalDateTime otpExpiryTime;
     private boolean isVerified = false;
-
-//    private int extraTokens = 0;
 }
