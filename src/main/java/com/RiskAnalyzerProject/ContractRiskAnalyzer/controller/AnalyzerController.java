@@ -65,8 +65,10 @@ public class AnalyzerController {
     }
 
     @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<Contract> uploadContract(@RequestParam("file") MultipartFile file, Principal  principal) throws IOException, java.io.IOException {
-        Contract savedContract = contractService.processAndSaveContract(file , principal.getName());
+    public ResponseEntity<Contract> uploadContract(@RequestParam("file") MultipartFile file, Principal  principal,
+                                                   @RequestParam(value = "jurisdiction", defaultValue = "General")String jurisdiction,
+                                                   @RequestParam(value = "contractType", defaultValue = "General Contract") String contractType) throws IOException, java.io.IOException {
+        Contract savedContract = contractService.processAndSaveContract(file , principal.getName(), jurisdiction, contractType);
         return ResponseEntity.ok(savedContract);
 }
     @PostMapping("/chat")

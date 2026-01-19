@@ -25,45 +25,37 @@ public class AiAnalysis {
         this.chatClient = ChatClient.builder(chatModel).build();
     }
 
-    @Cacheable(value = "contractAnalysis", key = "#contractText.hashCode()")
-    public String AnalysisContract(String contractText) {
+    @Cacheable(value = "contractAnalysis", key = "#contractText.hashCode()+ #jurisdiction + #contractType")
+    public String AnalysisContract(String contractText, String jurisdiction, String contractType) {
         String safeText = contractText.length() > 10000
                 ? contractText.substring(0, 10000) : contractText;
         String prompt = """
                 ROLE:
-                     You are a Senior Legal Risk Assessor with 20 years of experience in contract law.\s
-                     Your job is to protect the client by identifying dangerous clauses, loopholes, and missing protections.
+                     You are a Senior Legal Risk Assessor.
+                
+                CONTEXT:
+                     Analyze this contract under **%s LAW**.
+                     The user claims this is a **%s**.
                 
                 TASK:
-                     Analyze the provided contract text strictly for RISK. Do not summarize the good parts; focus on the bad parts.
-                
-                     ANALYSIS GUIDELINES:
-                            1. Look for 'Indemnification' clauses that are one-sided.
-                            2. Check for 'Termination' clauses (is it easy to exit?).
-                            3. Analyze 'Liability Caps' (is the limit too low?).
-                            4. Identify 'Jurisdiction' (is it in a favorable location?).
-                            5. Flag any 'Auto-renewal' traps.
+                     1. Risk Analysis: Identify dangerous clauses and loopholes.
+                     2. **COMPARISON**: Compare this document against a STANDARD, FAIR version of a %s.
+                        - What standard clauses are missing? (e.g., Severability, Confidentiality)
+                        - Is any standard clause unusually harsh?
                 
                 OUTPUT FORMAT:
-                    Return the result in valid, strict JSON format. Do not use Markdown (```json). Do not add conversational text.
-                
-                        JSON STRUCTURE:
+                    Return the result in valid, strict JSON format:
                         {
-                          "summary": "A concise 3-sentence executive summary of the contract type and purpose.",
-                          "risk_score": "Integer between 0 (Safe) and 100 (Extremely Dangerous)",
-                          "risk_level": "Low / Medium / High",
-                          "key_risks": [
-                            {
-                              "clause": "Name of the risky clause (e.g., 'Indemnity')",
-                              "risk_explanation": "Why this is dangerous (e.g., 'Requires you to pay for all 3rd party claims without limit.')",
-                              "severity": "High/Medium/Low"
-                            }
-                          ],
-                          "missing_clauses": ["List of standard protections missing (e.g., 'Confidentiality Clause', 'Force Majeure')"],
-                          "recommendations": ["Actionable advice 1", "Actionable advice 2"]
+                          "summary": "...",
+                          "risk_score": 0-100,
+                          "risk_level": "Low/Medium/High",
+                          "key_risks": [...],
+                          "missing_clauses": ["List missing standard clauses for this contract type"],
+                          "comparison_notes": "A short paragraph explaining how this deviates from a standard %s." 
                         }
+                
                 CONTRACT TEXT:
-                """ + safeText;
+                """.formatted(jurisdiction.toUpperCase(), contractType.toUpperCase(), contractType.toUpperCase(), contractType.toUpperCase()) + safeText;
        // Force temperature to 0.0 for consistent analysis
         OpenAiChatOptions options = OpenAiChatOptions.builder()
                 .temperature(0.1)

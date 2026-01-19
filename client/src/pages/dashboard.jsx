@@ -22,7 +22,8 @@ import {
     FaCloudUploadAlt,
     FaArrowRight,
     FaInfinity,
-    FaCalendarCheck
+    FaCalendarCheck,
+    FaGlobeAmericas
 } from 'react-icons/fa';
 
 // --- GLASSMORPHISM STYLE ---
@@ -60,6 +61,10 @@ const Dashboard = () => {
     // Modal State
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [contractToDelete, setContractToDelete] = useState(null);
+
+    // --- NEW: Analysis Options State ---
+    const [jurisdiction, setJurisdiction] = useState('General');
+    const [contractType, setContractType] = useState('General Contract');
 
     const navigate = useNavigate();
     const isAdmin = user.role === 'ADMIN';
@@ -156,14 +161,16 @@ const Dashboard = () => {
 
         const formData = new FormData();
         formData.append("file", selectedFile);
+        formData.append("jurisdiction", jurisdiction); // Send Jurisdiction
+        formData.append("contractType", contractType); // Send Contract Type
 
         setUploading(true);
         try {
-            toast.info("Analyzing contract...");
+            toast.info(`Analyzing ${contractType} under ${jurisdiction} law...`);
             await api.post('/contracts/upload', formData, {
                 headers: { 'Content-Type': 'multipart/form-data' }
             });
-            toast.success("Upload Complete!");
+            toast.success("Analysis Complete!");
             fetchContracts();
             fetchQuota();
             setSelectedFile(null);
@@ -256,7 +263,7 @@ const Dashboard = () => {
                     </div>
                 </div>
 
-                {/* --- 2. QUOTA WARNING (If 0 Credits) --- */}
+                {/* --- 2. QUOTA WARNING --- */}
                 {!isAdmin && remainingQuota?.remaining === 0 && (
                     <Alert variant="warning" className="mb-4 shadow-sm border-0 border-start border-warning border-5 rounded-3 bg-white">
                         <div className="d-flex align-items-center fw-bold text-dark">
@@ -272,7 +279,7 @@ const Dashboard = () => {
                 <Row className="g-4 mb-5">
                     {!isAdmin && (
                         <Col md={12} lg={6}>
-                            {/* UPDATED: Credits Card (No Payment Buttons) */}
+                            {/* Credits Card */}
                             <Card className="border-0 h-100" style={{ ...glassStyle, background: 'linear-gradient(135deg, #4f46e5 0%, #4338ca 100%)', color: 'white' }}>
                                 <Card.Body className="p-4 d-flex flex-column justify-content-center">
                                     <div className="d-flex justify-content-between align-items-start">
@@ -302,25 +309,64 @@ const Dashboard = () => {
                                     {selectedFile && <Badge bg="success">File Selected</Badge>}
                                 </div>
 
-                                <div className="d-flex gap-3 align-items-center">
-                                    <Form.Control
-                                        type="file"
-                                        ref={fileInputRef}
-                                        onChange={handleFileSelect}
-                                        accept="application/pdf"
-                                        disabled={uploading || (!isAdmin && remainingQuota?.remaining === 0)}
-                                        className="shadow-sm border-0 py-2"
-                                    />
-                                    <Button
-                                        variant="primary"
-                                        onClick={handleUpload}
-                                        disabled={uploading || !selectedFile}
-                                        className="shadow-lg rounded-pill px-4 fw-bold d-flex align-items-center"
-                                        style={{ minWidth: '140px' }}
-                                    >
-                                        {uploading ? <><FaRobot className="me-2 pulse" /> Analyzing</> : <><FaCloudUploadAlt className="me-2" /> Analyze</>}
-                                    </Button>
+                                {/* --- UPLOAD CONTROLS --- */}
+                                <div className="d-flex flex-column gap-3">
+
+                                    {/* Row 1: Dropdowns */}
+                                    <div className="d-flex gap-2">
+                                        {/* Jurisdiction Selector */}
+                                        <Form.Select
+                                            value={jurisdiction}
+                                            onChange={(e) => setJurisdiction(e.target.value)}
+                                            className="shadow-sm border-0 py-2 bg-light fw-bold text-dark flex-grow-1"
+                                            disabled={uploading}
+                                        >
+                                            <option value="General">General Law</option>
+                                            <option value="India">🇮🇳 India</option>
+                                            <option value="United States">🇺🇸 USA</option>
+                                            <option value="United Kingdom">🇬🇧 UK</option>
+                                            <option value="European Union">🇪🇺 EU</option>
+                                        </Form.Select>
+
+                                        {/* Contract Type Selector */}
+                                        <Form.Select
+                                            value={contractType}
+                                            onChange={(e) => setContractType(e.target.value)}
+                                            className="shadow-sm border-0 py-2 bg-light fw-bold text-dark flex-grow-1"
+                                            disabled={uploading}
+                                        >
+                                            <option value="General Contract">General Contract</option>
+                                            <option value="Employment Agreement">Employment Agreement</option>
+                                            <option value="Non-Disclosure Agreement (NDA)">NDA</option>
+                                            <option value="Software License (SaaS)">SaaS Agreement</option>
+                                            <option value="Lease Agreement">Lease Agreement</option>
+                                            <option value="Freelance Contract">Freelance Contract</option>
+                                        </Form.Select>
+                                    </div>
+
+                                    {/* Row 2: File & Button */}
+                                    <div className="d-flex gap-2 align-items-center">
+                                        <Form.Control
+                                            type="file"
+                                            ref={fileInputRef}
+                                            onChange={handleFileSelect}
+                                            accept="application/pdf"
+                                            disabled={uploading || (!isAdmin && remainingQuota?.remaining === 0)}
+                                            className="shadow-sm border-0 py-2"
+                                        />
+
+                                        <Button
+                                            variant="primary"
+                                            onClick={handleUpload}
+                                            disabled={uploading || !selectedFile}
+                                            className="shadow-lg rounded-pill px-4 fw-bold d-flex align-items-center"
+                                            style={{ minWidth: '120px' }}
+                                        >
+                                            {uploading ? <><FaRobot className="me-2 pulse" /> Analyzing</> : "Analyze"}
+                                        </Button>
+                                    </div>
                                 </div>
+
                                 {uploading && <ProgressBar animated now={100} className="mt-3" style={{ height: '4px' }} />}
                             </Card.Body>
                         </Card>

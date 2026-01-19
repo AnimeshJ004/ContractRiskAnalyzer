@@ -14,6 +14,8 @@ public class Contract {
     private String uploadDate;
     private String rawText; //Extract-> text from pdf
     private String analysisJson; //Return->Json String by AI
+    private String jurisdiction;
+    private String contractType;
 
     public String getExtractedText() {
         return this.rawText;

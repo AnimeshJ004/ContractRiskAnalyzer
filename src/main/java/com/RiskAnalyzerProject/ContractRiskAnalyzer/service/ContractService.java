@@ -39,7 +39,7 @@ public class ContractService {
     @Autowired
     private RateLimitingService rateLimitingService;
 
-    public Contract processAndSaveContract(MultipartFile file,String username) throws IOException {
+    public Contract processAndSaveContract(MultipartFile file,String username, String jurisdiction, String contractType) throws IOException {
         if (!rateLimitingService.tryConsume(username)) {
             // Throw existing AppException (returns 400 Bad Request)
             throw new com.RiskAnalyzerProject.ContractRiskAnalyzer.exception.AppException(
@@ -48,7 +48,7 @@ public class ContractService {
         }
         try {
             String text = pdfService.Text(file);
-            String analysis = aiAnalysis.AnalysisContract(text);
+            String analysis = aiAnalysis.AnalysisContract(text, jurisdiction , contractType);
 
             Contract contract = new Contract();
             contract.setFilename(file.getOriginalFilename());
@@ -56,6 +56,8 @@ public class ContractService {
             contract.setAnalysisJson(analysis);
             contract.setUploadDate(LocalDateTime.now().toString());
             contract.setOwnerUsername(username);
+            contract.setJurisdiction(jurisdiction);
+            contract.setContractType(contractType);
 
             return contractRepository.save(contract);
         } catch (IOException e) {

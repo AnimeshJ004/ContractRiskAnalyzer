@@ -14,11 +14,12 @@ public class EmailService {
     @Value("${spring.mail.username}")
     private String debugUsername;
 
-    private final String SENDER_EMAIL = "Contract Risk Analyzer <animeshj425@gmail.com>";
+    @Value("${app.email.sender}")
+    private String SENDER_EMAIL;
 
     private void sendEmail(String toEmail, String subject, String body) {
         SimpleMailMessage message = new SimpleMailMessage();
-        message.setFrom(SENDER_EMAIL);
+        message.setFrom(this.SENDER_EMAIL);
         message.setTo(toEmail);
         message.setSubject(subject);
         message.setText(body);
