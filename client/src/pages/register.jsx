@@ -49,7 +49,7 @@ const Register = () => {
     const handleGoogleRegister = () => {
         // Set cookie to tell backend we intend to REGISTER
         document.cookie = "auth_intent=register; path=/; max-age=300";
-        window.location.href = "http://localhost:8080/oauth2/authorization/google";
+        window.location.href = "/oauth2/authorization/google";
     };
 
     return (
