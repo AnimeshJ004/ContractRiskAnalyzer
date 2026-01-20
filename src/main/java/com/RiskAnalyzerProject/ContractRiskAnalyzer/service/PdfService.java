@@ -49,11 +49,13 @@ public class PdfService {
             // Loop through all pages
             for (int page = 0; page < document.getNumberOfPages(); page++) {
                 // Render page as an image (300 DPI is good for OCR)
-                BufferedImage bim = pdfRenderer.renderImageWithDPI(page, 300, ImageType.RGB);
+                BufferedImage bim = pdfRenderer.renderImageWithDPI(page, 150, ImageType.RGB);
 
                 // Perform OCR on the image
                 String result = tesseract.doOCR(bim);
                 out.append(result);
+                bim.flush();
+                bim = null;
             }
         } catch (TesseractException e) {
             System.err.println("OCR Failed. Checked path: " + tessDataPath);
