@@ -73,7 +73,7 @@ public class AiAnalysis {
                 """.formatted(jurisdiction.toUpperCase(), contractType.toUpperCase(), contractType.toUpperCase()) + safeText;
        // Force temperature to 0.0 for consistent analysis
         OpenAiChatOptions options = OpenAiChatOptions.builder()
-                .temperature(0.7)
+                .temperature(0.5)
                 .build();
         // Call the AI model
         return chatClient.prompt()
@@ -128,7 +128,7 @@ public class AiAnalysis {
         }
         OpenAiChatOptions options = OpenAiChatOptions.builder()
                 .model("llama-3.3-70b-versatile")
-                .temperature(0.7)
+                .temperature(0.5)
                 .build();
         String response =  chatClient.prompt()
                 .system(prompt)
