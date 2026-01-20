@@ -40,22 +40,28 @@ public class AiAnalysis {
                 TASK:
                      1. Risk Analysis: Identify dangerous clauses and loopholes.
                      2. **COMPARISON**: Compare this document against a STANDARD, FAIR version of a %s.
-                        - What standard clauses are missing? (e.g., Severability, Confidentiality)
+                        - What standard clauses are missing?
                         - Is any standard clause unusually harsh?
                 
                 OUTPUT FORMAT:
-                    Return the result in valid, strict JSON format:
+                    You must output ONLY valid, raw JSON. 
+                    - DO NOT use Markdown code blocks (```json).
+                    - DO NOT include any text before the opening brace '{'.
+                    - DO NOT include any text after the closing brace '}'.
+                    
+                    JSON Structure:
                         {
                           "summary": "...",
                           "risk_score": 0-100,
                           "risk_level": "Low/Medium/High",
-                          "key_risks": [...],
-                          "missing_clauses": ["List missing standard clauses for this contract type"],
-                          "comparison_notes": "A short paragraph explaining how this deviates from a standard %s." 
+                          "key_risks": [{"clause": "...", "severity": "...", "risk_explanation": "..."}],
+                          "missing_clauses": ["List missing standard clauses"],
+                          "recommendations": ["Actionable advice"],
+                          "comparison_notes": "Short comparison paragraph" 
                         }
                 
                 CONTRACT TEXT:
-                """.formatted(jurisdiction.toUpperCase(), contractType.toUpperCase(), contractType.toUpperCase(), contractType.toUpperCase()) + safeText;
+                """.formatted(jurisdiction.toUpperCase(), contractType.toUpperCase(), contractType.toUpperCase()) + safeText;
        // Force temperature to 0.0 for consistent analysis
         OpenAiChatOptions options = OpenAiChatOptions.builder()
                 .temperature(0.1)
