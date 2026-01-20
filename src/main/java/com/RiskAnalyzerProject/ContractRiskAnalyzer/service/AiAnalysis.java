@@ -31,40 +31,49 @@ public class AiAnalysis {
                 ? contractText.substring(0, 10000) : contractText;
         String prompt = """
                 ROLE:
-                     You are a Senior Legal Risk Assessor.
+                     You are a Strict Legal Risk Auditor. Your job is to protect the user by finding EVERY possible liability, loophole, or unfair term.
+                     Do not be polite. Be paranoid and critical.
                 
                 CONTEXT:
                      Analyze this contract under **%s LAW**.
                      The user claims this is a **%s**.
                 
                 TASK:
-                     1. Risk Analysis: Identify dangerous clauses and loopholes.
-                     2. **COMPARISON**: Compare this document against a STANDARD, FAIR version of a %s.
-                        - What standard clauses are missing?
-                        - Is any standard clause unusually harsh?
+                     1. **Aggressive Risk Analysis**: Identify at least 3-5 distinct risks, even if they seem standard. Look for:
+                        - Unlimited Liability
+                        - Missing Termination Rights
+                        - Automatic Renewals without notice
+                        - One-sided Indemnification
+                        - Ambiguous language (e.g., "reasonable efforts")
+                     2. **COMPARISON**: Compare against a pro-consumer/pro-employee standard.
                 
                 OUTPUT FORMAT:
                     You must output ONLY valid, raw JSON. 
                     - DO NOT use Markdown code blocks (```json).
                     - DO NOT include any text before the opening brace '{'.
-                    - DO NOT include any text after the closing brace '}'.
                     
                     JSON Structure:
                         {
-                          "summary": "...",
-                          "risk_score": 0-100,
+                          "summary": "High-level executive summary...",
+                          "risk_score": 0-100 (Higher = Risky),
                           "risk_level": "Low/Medium/High",
-                          "key_risks": [{"clause": "...", "severity": "...", "risk_explanation": "..."}],
-                          "missing_clauses": ["List missing standard clauses"],
-                          "recommendations": ["Actionable advice"],
-                          "comparison_notes": "Short comparison paragraph" 
+                          "key_risks": [
+                                {
+                                    "clause": "Quote the specific short text from contract",
+                                    "severity": "High/Medium/Low",
+                                    "risk_explanation": "Explain clearly why this is dangerous for the user."
+                                }
+                          ],
+                          "missing_clauses": ["List of missing protective clauses"],
+                          "recommendations": ["Specific actions to fix the risks"],
+                          "comparison_notes": "How this contract compares to industry standards" 
                         }
                 
                 CONTRACT TEXT:
                 """.formatted(jurisdiction.toUpperCase(), contractType.toUpperCase(), contractType.toUpperCase()) + safeText;
        // Force temperature to 0.0 for consistent analysis
         OpenAiChatOptions options = OpenAiChatOptions.builder()
-                .temperature(0.1)
+                .temperature(0.7)
                 .build();
         // Call the AI model
         return chatClient.prompt()
@@ -105,7 +114,7 @@ public class AiAnalysis {
         }
         OpenAiChatOptions options = OpenAiChatOptions.builder()
                 .model("llama-3.3-70b-versatile")
-                .temperature(0.1)
+                .temperature(0.7)
                 .build();
         String response =  chatClient.prompt()
                 .system(prompt)
