@@ -11,9 +11,6 @@ import org.springframework.web.bind.annotation.*;
 import com.RiskAnalyzerProject.ContractRiskAnalyzer.dto.LoginRequest;
 import com.RiskAnalyzerProject.ContractRiskAnalyzer.dto.RegisterRequest;
 import java.security.Principal;
-import com.RiskAnalyzerProject.ContractRiskAnalyzer.dto.ResetPasswordRequest;
-import com.RiskAnalyzerProject.ContractRiskAnalyzer.dto.OAuth2CompleteRequest;
-import com.RiskAnalyzerProject.ContractRiskAnalyzer.util.JwtUtil;
 
 import java.util.HashMap;
 import java.util.Map;

@@ -90,7 +90,7 @@ const Login = () => {
 
    const handleGoogleLogin = () => {
         document.cookie = "auth_intent=login; path=/; max-age=300";
-        window.location.href = "http://localhost:8080/oauth2/authorization/google";
+       window.location.href = "/oauth2/authorization/google";
     };
 
     const handleResendOtp = async () => {
