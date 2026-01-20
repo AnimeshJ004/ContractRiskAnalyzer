@@ -90,18 +90,32 @@ public class AiAnalysis {
                     ? contractText.substring(0, 15000)
                     : contractText;
             prompt = """
-                    You are a legal assistant. Use the following contract text to answer the user's question.
-                     If the answer is not in the text, say you don't know.
-                    
-                     --- CONTRACT TEXT START ---
-                     %s
-                     --- CONTRACT TEXT END ---
-                    
-                     User Question: %s
-                    """.formatted(contractText, question);
-        }else {
-            // General Chat Mode
-            prompt = "You are a General AI Legal Assistant. You can help with general legal concepts, definitions, and drafting advice.";
+                ROLE:
+                    You are a strict Legal Contract Analyst.
+                
+                INSTRUCTIONS:
+                    1. Answer the user's question using **ONLY** the contract text below.
+                    2. **CITE YOUR SOURCES**: When you make a claim, mention the specific Clause (e.g., "According to Clause 4.2...").
+                    3. If the answer is NOT in the text, say: "I cannot find that information in this specific contract." Do not guess.
+                    4. Keep answers concise and direct.
+                
+                --- CONTRACT TEXT START ---
+                %s
+                --- CONTRACT TEXT END ---
+                """.formatted(safeText);
+
+            // SCENARIO 2: GENERAL TALK (Helpful Assistant)
+        } else {
+            prompt = """
+                ROLE:
+                    You are an expert AI Legal Assistant.
+                
+                INSTRUCTIONS:
+                    1. Help the user with general legal concepts, definitions, and drafting advice.
+                    2. **DISCLAIMER**: Always imply that you provide information, not legal advice.
+                    3. Be professional, clear, and educational.
+                    4. If asked about a specific document, ask the user to upload it first.
+                """;
         }
         // 1. Retrieve full history
         List<Message> fullHistory = chatMemory.get(conversationId);
