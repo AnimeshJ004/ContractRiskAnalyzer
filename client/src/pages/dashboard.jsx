@@ -19,11 +19,9 @@ import {
     FaUser,
     FaCreditCard,
     FaSearch,
-    FaCloudUploadAlt,
-    FaArrowRight,
-    FaInfinity,
     FaCalendarCheck,
-    FaGlobeAmericas
+    FaInfinity,
+    FaArrowRight
 } from 'react-icons/fa';
 
 // --- GLASSMORPHISM STYLE ---
@@ -62,7 +60,7 @@ const Dashboard = () => {
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [contractToDelete, setContractToDelete] = useState(null);
 
-    // --- NEW: Analysis Options State ---
+    // --- Analysis Options State ---
     const [jurisdiction, setJurisdiction] = useState('General');
     const [contractType, setContractType] = useState('General Contract');
 
@@ -188,6 +186,7 @@ const Dashboard = () => {
     const handleLogout = async () => {
         try { await api.post('/auth/logout'); } catch (e) { }
         localStorage.removeItem('jwtToken');
+        localStorage.removeItem('lastActive');
         navigate('/');
         toast.success("Logout Successful!")
     };
@@ -213,17 +212,19 @@ const Dashboard = () => {
                  overflowX: 'hidden'
              }}>
 
-            {/* Background Blobs */}
-            <div style={{ position: 'absolute', top: '-10%', left: '-10%', width: '600px', height: '600px', background: '#6366f1', filter: 'blur(150px)', opacity: '0.15', borderRadius: '50%', zIndex: '0' }}></div>
+            {/* Background Blobs (Hidden on mobile via CSS class) */}
+            <div className="background-blob" style={{ position: 'absolute', top: '-10%', left: '-10%', width: '600px', height: '600px', background: '#6366f1', filter: 'blur(150px)', opacity: '0.15', borderRadius: '50%', zIndex: '0' }}></div>
 
-            <Container style={{ position: 'relative', zIndex: 1 }} className="pt-4">
+            <Container style={{ position: 'relative', zIndex: 1 }} className="pt-3 pt-md-4">
 
-                {/* --- 1. NAVBAR --- */}
-                <div className="d-flex justify-content-between align-items-center mb-5">
-                    <div>
-                        {/* CLICKABLE BRAND */}
+                {/* --- 1. NAVBAR (FIXED FOR DESKTOP) --- */}
+                {/* Desktop: Justify Between (Left/Right) | Mobile: Flex Column (Centered) */}
+                <div className="d-flex flex-column flex-md-row justify-content-between align-items-center mb-5 gap-3">
+
+                    {/* Brand Section */}
+                    <div className="text-center text-md-start">
                         <div
-                            className="d-flex align-items-center gap-2 mb-1"
+                            className="d-flex align-items-center justify-content-center justify-content-md-start gap-2 mb-1"
                             onClick={() => navigate('/')}
                             style={{ cursor: 'pointer' }}
                             title="Go to Home Page"
@@ -234,15 +235,17 @@ const Dashboard = () => {
                         <p className="text-muted mb-0 ms-1">Welcome back, <span className="fw-bold text-primary">{user.username}</span></p>
                     </div>
 
-                    <div className="d-flex gap-3 align-items-center">
-                        <Button variant="white" className="shadow-sm rounded-pill fw-bold text-primary border" onClick={() => navigate('/chat/general')}>
+                    {/* Actions Section */}
+                    {/* Desktop: Align Right | Mobile: Full Width Buttons */}
+                    <div className="d-flex gap-2 w-100 w-md-auto justify-content-center justify-content-md-end">
+                        <Button variant="white" className="shadow-sm rounded-pill fw-bold text-primary border flex-grow-1 flex-md-grow-0" onClick={() => navigate('/chat/general')}>
                             <FaComments className="me-2" /> AI Chat
                         </Button>
 
                         <Dropdown align="end">
                             <Dropdown.Toggle variant="white" id="profile-dropdown" className="d-flex align-items-center border shadow-sm rounded-pill px-3 py-2 text-dark bg-white">
                                 <FaUserCircle size={20} className="me-2 text-secondary" />
-                                {user.username} {isAdmin && <Badge bg="danger" className="ms-2">ADMIN</Badge>}
+                                <span className="d-none d-sm-inline">{user.username}</span> {isAdmin && <Badge bg="danger" className="ms-2">ADMIN</Badge>}
                             </Dropdown.Toggle>
                             <Dropdown.Menu className="shadow-lg border-0 p-0 mt-2 rounded-3 overflow-hidden" style={{ minWidth: '240px' }}>
                                 <div className="px-4 py-3 bg-light border-bottom">
@@ -303,7 +306,7 @@ const Dashboard = () => {
 
                     <Col md={12} lg={!isAdmin ? 6 : 12}>
                         <Card className="border-0 h-100" style={glassStyle}>
-                            <Card.Body className="p-4">
+                            <Card.Body className="p-3 p-md-4">
                                 <div className="d-flex justify-content-between align-items-center mb-4">
                                     <h5 className="fw-bold mb-0 text-dark"><FaUpload className="me-2 text-primary" />Quick Upload</h5>
                                     {selectedFile && <Badge bg="success">File Selected</Badge>}
@@ -313,12 +316,11 @@ const Dashboard = () => {
                                 <div className="d-flex flex-column gap-3">
 
                                     {/* Row 1: Dropdowns */}
-                                    <div className="d-flex gap-2">
-                                        {/* Jurisdiction Selector */}
+                                    <div className="d-flex flex-column flex-md-row gap-2">
                                         <Form.Select
                                             value={jurisdiction}
                                             onChange={(e) => setJurisdiction(e.target.value)}
-                                            className="shadow-sm border-0 py-2 bg-light fw-bold text-dark flex-grow-1"
+                                            className="shadow-sm border-0 py-2 bg-light fw-bold text-dark flex-fill"
                                             disabled={uploading}
                                         >
                                             <option value="General">General Law</option>
@@ -328,11 +330,10 @@ const Dashboard = () => {
                                             <option value="European Union">🇪🇺 EU</option>
                                         </Form.Select>
 
-                                        {/* Contract Type Selector */}
                                         <Form.Select
                                             value={contractType}
                                             onChange={(e) => setContractType(e.target.value)}
-                                            className="shadow-sm border-0 py-2 bg-light fw-bold text-dark flex-grow-1"
+                                            className="shadow-sm border-0 py-2 bg-light fw-bold text-dark flex-fill"
                                             disabled={uploading}
                                         >
                                             <option value="General Contract">General Contract</option>
@@ -345,28 +346,28 @@ const Dashboard = () => {
                                     </div>
 
                                     {/* Row 2: File & Button */}
-                                    <div className="d-flex gap-2 align-items-center">
+                                    <div className="d-flex flex-column flex-md-row gap-2">
                                         <Form.Control
                                             type="file"
                                             ref={fileInputRef}
                                             onChange={handleFileSelect}
                                             accept="application/pdf"
                                             disabled={uploading || (!isAdmin && remainingQuota?.remaining === 0)}
-                                            className="shadow-sm border-0 py-2"
+                                            className="shadow-sm border-0 py-2 flex-grow-1"
                                         />
 
                                         <Button
                                             variant="primary"
                                             onClick={handleUpload}
                                             disabled={uploading || !selectedFile}
-                                            className="shadow-lg rounded-pill px-4 fw-bold d-flex align-items-center"
-                                            style={{ minWidth: '120px' }}
+                                            className="shadow-lg rounded-pill px-4 fw-bold"
+                                            // Desktop: Fixed width (Clean) | Mobile: Full width (Easy tap)
+                                            style={{ minWidth: '150px' }}
                                         >
                                             {uploading ? <><FaRobot className="me-2 pulse" /> Analyzing</> : "Analyze"}
                                         </Button>
                                     </div>
                                 </div>
-
                                 {uploading && <ProgressBar animated now={100} className="mt-3" style={{ height: '4px' }} />}
                             </Card.Body>
                         </Card>
@@ -374,15 +375,20 @@ const Dashboard = () => {
                 </Row>
 
                 {/* --- 4. SEARCH & FILTER --- */}
-                <div className="d-flex justify-content-between align-items-center mb-4">
+                <div className="d-flex flex-column flex-md-row justify-content-between align-items-center mb-4 gap-3">
                     <h4 className="fw-bold text-dark mb-0">
                         {isAdmin ? "System Contracts" : "My Contracts"}
                         <span className="text-muted ms-2 fs-6 fw-normal">({filteredContracts.length})</span>
                     </h4>
-                    <InputGroup className="shadow-sm rounded-pill overflow-hidden border-0 bg-white" style={{ maxWidth: '300px' }}>
+
+                    {/* Search Bar: Fixed width on Desktop, Full on Mobile */}
+                    <InputGroup
+                        className="shadow-sm rounded-pill overflow-hidden border-0 bg-white mobile-full-width"
+                        style={{ width: '300px' }}
+                    >
                         <InputGroup.Text className="bg-white border-0 ps-3 text-muted"><FaSearch /></InputGroup.Text>
                         <Form.Control
-                            placeholder="Search..."
+                            placeholder="Search files..."
                             className="border-0 shadow-none"
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
@@ -391,7 +397,7 @@ const Dashboard = () => {
                 </div>
 
                 {/* --- 5. CONTRACTS GRID --- */}
-                <Row xs={1} md={2} lg={3} xl={4} className="g-4">
+                <Row xs={1} md={2} lg={3} xl={4} className="g-3 g-md-4">
                     {filteredContracts.map((contract) => {
                         let riskLevel = 'low';
                         try {

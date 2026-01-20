@@ -86,49 +86,49 @@ const ContractDetails = () => {
     );
 
     return (
-        <div className="min-vh-100 fade-in py-5"
+        <div className="min-vh-100 fade-in py-4 py-md-5"
              style={{
                  background: 'linear-gradient(135deg, #e0e7ff 0%, #f3f4f6 100%)',
                  position: 'relative',
-                 overflowX: 'hidden' // Prevent horizontal scroll
+                 overflowX: 'hidden'
              }}>
-
-            {/* Background Blobs */}
-            <div style={{ position: 'absolute', top: '-10%', left: '-10%', width: '600px', height: '600px', background: '#6366f1', filter: 'blur(150px)', opacity: '0.15', borderRadius: '50%', zIndex: '0' }}></div>
-            <div style={{ position: 'absolute', bottom: '10%', right: '-10%', width: '500px', height: '500px', background: '#10b981', filter: 'blur(150px)', opacity: '0.15', borderRadius: '50%', zIndex: '0' }}></div>
 
             <Container style={{ position: 'relative', zIndex: 1 }}>
 
-                {/* --- HEADER --- */}
-                <div className="d-flex justify-content-between align-items-center mb-4">
-                    <Button variant="white" className="shadow-sm rounded-pill px-3 fw-bold text-muted border" onClick={() => navigate('/dashboard')}>
+                {/* --- RESPONSIVE HEADER --- */}
+                {/* Stack buttons on mobile */}
+                <div className="d-flex flex-column flex-md-row justify-content-between align-items-center mb-4 gap-3">
+                    <Button variant="white" className="shadow-sm rounded-pill px-3 fw-bold text-muted border w-100 w-md-auto" onClick={() => navigate('/dashboard')}>
                         <FaArrowLeft className="me-2" /> Back to Dashboard
                     </Button>
-                    <div className="d-flex gap-2">
-                        <Button variant="success" className="shadow-sm rounded-pill fw-bold" onClick={handleDownloadAnalysis}>
+                    <div className="d-flex flex-column flex-sm-row gap-2 w-100 w-md-auto">
+                        <Button variant="success" className="shadow-sm rounded-pill fw-bold flex-grow-1" onClick={handleDownloadAnalysis}>
                             <FaDownload className="me-2" /> Download Report
                         </Button>
-                        <Button variant="primary" className="shadow-sm rounded-pill fw-bold" onClick={() => navigate(`/chat/${id}`)}>
+                        <Button variant="primary" className="shadow-sm rounded-pill fw-bold flex-grow-1" onClick={() => navigate(`/chat/${id}`)}>
                             <FaRobot className="me-2" /> Chat with Contract
                         </Button>
                     </div>
                 </div>
 
-                {/* --- MAIN SUMMARY CARD --- */}
+                {/* --- SUMMARY CARD (STACKED) --- */}
                 <Card className="border-0 mb-4" style={glassStyle}>
                     <Card.Body className="p-4">
-                        <Row className="align-items-center">
-                            <Col md={8}>
-                                <h2 className="fw-bold text-dark mb-1">{contract.filename}</h2>
+                        <Row className="align-items-center g-4">
+                            {/* Text Info */}
+                            <Col xs={12} md={8} className="text-center text-md-start">
+                                <h2 className="fw-bold text-dark mb-1 text-break">{contract.filename}</h2>
                                 <p className="text-muted small mb-3">
                                     Uploaded on: {new Date(contract.uploadDate).toLocaleString()}
                                 </p>
                                 <h5 className="fw-bold text-primary">Executive Summary</h5>
-                                <p className="text-secondary" style={{ lineHeight: '1.6' }}>
+                                <p className="text-secondary mb-0" style={{ lineHeight: '1.6' }}>
                                     {analysis?.summary || "No summary available."}
                                 </p>
                             </Col>
-                            <Col md={4} className="text-center border-start border-secondary border-opacity-10">
+
+                            {/* Risk Score (Centered on mobile) */}
+                            <Col xs={12} md={4} className="text-center border-start-md border-secondary border-opacity-10 pt-3 pt-md-0">
                                 <h6 className="text-muted text-uppercase fw-bold mb-3 small ls-1">Risk Assessment</h6>
                                 <div className="position-relative d-inline-flex align-items-center justify-content-center mb-3"
                                      style={{
@@ -153,9 +153,9 @@ const ContractDetails = () => {
                     </Card.Body>
                 </Card>
 
-                <Row>
+                <Row className="g-4">
                     {/* --- LEFT COLUMN: RISKS & RECOMMENDATIONS --- */}
-                    <Col lg={7}>
+                    <Col xs={12} lg={7}>
                         {/* Key Risks */}
                         <Card className="border-0 mb-4 shadow-sm" style={glassStyle}>
                             <Card.Header className="bg-transparent border-0 pt-4 px-4 pb-2">
@@ -180,7 +180,7 @@ const ContractDetails = () => {
                             </Card.Body>
                         </Card>
 
-                        <Row>
+                        <Row className="g-4">
                             {/* Missing Clauses */}
                             <Col md={6}>
                                 <Card className="border-0 mb-4 h-100 shadow-sm" style={glassStyle}>
@@ -216,7 +216,7 @@ const ContractDetails = () => {
                     </Col>
 
                     {/* --- RIGHT COLUMN: RAW CONTENT --- */}
-                    <Col lg={5}>
+                    <Col xs={12} lg={5}>
                         <Card className="border-0 h-100 shadow-lg" style={{ ...glassStyle, minHeight: '600px', overflow: 'hidden' }}>
                             <Card.Header className="bg-white bg-opacity-50 border-bottom py-3 px-4 fw-bold text-primary">
                                 <FaFileAlt className="me-2" /> Original Contract Content

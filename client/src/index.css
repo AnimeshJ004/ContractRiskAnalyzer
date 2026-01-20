@@ -256,37 +256,6 @@ a:hover {
   box-shadow: var(--shadow);
 }
 
-/* Enhanced Responsive Design */
-@media (max-width: 768px) {
-  .card {
-    margin-bottom: 1rem;
-    border-radius: 12px;
-  }
-
-  h1 {
-    font-size: 2rem;
-  }
-
-  h2 {
-    font-size: 1.5rem;
-  }
-
-  .btn {
-    padding: 0.5rem 1rem;
-    font-size: 0.9rem;
-  }
-}
-
-@media (max-width: 576px) {
-  .card:hover {
-    transform: translateY(-4px) scale(1.01);
-  }
-
-  .btn:hover {
-    transform: translateY(-1px);
-  }
-}
-
 /* Utility Classes */
 .hover-lift {
   transition: transform 0.3s ease, box-shadow 0.3s ease;
@@ -318,4 +287,35 @@ a:hover {
 
 ::-webkit-scrollbar-thumb:hover {
   background: var(--secondary-color);
+}
+
+/* --- MOBILE RESPONSIVENESS FIXES --- */
+
+@media (max-width: 768px) {
+  /* 1. Reduce text sizes for headings */
+  h1.display-3 { font-size: 2.5rem !important; }
+  h2 { font-size: 1.75rem !important; }
+  h3 { font-size: 1.5rem !important; }
+  h4 { font-size: 1.25rem !important; }
+
+  /* 2. Adjust Card Padding */
+  .card-body { padding: 1.25rem !important; }
+
+  /* 3. Make Buttons full width on mobile if needed */
+  .mobile-full-btn { width: 100% !important; margin-bottom: 0.5rem; }
+
+  /* 4. Fix Navbar overlap */
+  .navbar-brand { font-size: 1.25rem !important; }
+
+  /* 5. Hide large background blobs on mobile (improves performance & scrolling) */
+  .background-blob { display: none !important; }
+
+  /* 6. Ensure containers have breathing room */
+  .container { padding-left: 20px !important; padding-right: 20px !important; }
+
+  /* 7. Force full width on inputs with this class */
+  .mobile-full-width {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
 }
